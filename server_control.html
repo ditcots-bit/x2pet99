@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hệ thống điều hành Tài Xỉu - Pet99</title>
+    <style>
+        body { font-family: sans-serif; background: #000; color: #0f0; text-align: center; padding-top: 50px; }
+        .status-box { border: 2px solid #0f0; display: inline-block; padding: 20px; border-radius: 10px; }
+        #clock { font-size: 48px; margin: 10px 0; }
+        .info { color: #888; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="status-box">
+        <h2>MÁY CHỦ ĐANG CHẠY</h2>
+        <h1 id="clock">Khởi động...</h1>
+        <div id="dice-info">Kết quả phiên trước: --</div>
+        <p class="info">Vui lòng không đóng tab này để hệ thống luôn chạy.</p>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPffcP5X0EAK5J85Jcfa9UIT7z2Bc-5Q",
+            authDomain: "taixiupet99.firebaseapp.com",
+            projectId: "taixiupet99",
+            storageBucket: "taixiupet99.firebasestorage.app",
+            messagingSenderId: "338775305334",
+            appId: "1:338775305334:web:f519fcd9e7530873814357",
+            databaseURL: "https://taixiupet99-default-rtdb.firebaseio.com" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const sessionRef = firebase.database().ref('gameSession');
+
+        let timeLeft = 60;
+        
+        setInterval(() => {
+            timeLeft--;
+            
+            if (timeLeft <= 0) {
+                // 1. Tạo kết quả khi hết giờ
+                const dice = [
+                    Math.floor(Math.random() * 6) + 1, 
+                    Math.floor(Math.random() * 6) + 1, 
+                    Math.floor(Math.random() * 6) + 1
+                ];
+                
+                // Cập nhật trạng thái kết quả
+                sessionRef.set({ 
+                    timeLeft: 0, 
+                    dice: dice, 
+                    status: "result" 
+                });
+                
+                document.getElementById("dice-info").innerText = "🎲 Phiên vừa rồi: " + dice.join(" - ");
+                
+                // 2. Nghỉ 5 giây để người chơi xem kết quả rồi mới sang ván mới
+                timeLeft = 65; 
+            } else if (timeLeft <= 60) {
+                // Chỉ cập nhật lên Firebase trạng thái đặt cược
+                sessionRef.update({ 
+                    timeLeft: timeLeft, 
+                    status: "betting" 
+                });
+            }
+
+            // Hiển thị trên màn hình máy chủ (server)
+            let displayTime = timeLeft > 60 ? "Đang chờ ván mới..." : timeLeft + "s";
+            document.getElementById("clock").innerText = displayTime;
+            
+        }, 1000);
+    </script>
+</body>
+</html>

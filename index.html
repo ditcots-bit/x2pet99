@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Đăng Nhập - TaiXiuPet99</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-box { background: #1e1e1e; padding: 30px; border-radius: 15px; border: 1px solid #f1c40f; text-align: center; width: 320px; }
+        input { width: 90%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; }
+        button { width: 100%; padding: 12px; background: #f1c40f; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #d4ac0d; }
+        .msg { font-size: 13px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="login-box">
+    <h2>🎮 TÀI XỈU PET99</h2>
+    <input type="text" id="username" placeholder="Tên nhân vật Roblox...">
+    <input type="password" id="password" placeholder="Mật khẩu...">
+    <button onclick="handleLogin()">VÀO GAME / ĐĂNG KÝ</button>
+    <p class="msg" id="msg">Nhập tên và mk để tiếp tục</p>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCPffcP5X0EAK5J85Jcfa9UIT7z2Bc-5Q",
+        authDomain: "taixiupet99.firebaseapp.com",
+        projectId: "taixiupet99",
+        storageBucket: "taixiupet99.firebasestorage.app",
+        messagingSenderId: "338775305334",
+        appId: "1:338775305334:web:f519fcd9e7530873814357",
+        databaseURL: "https://taixiupet99-default-rtdb.firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    function handleLogin() {
+        const user = document.getElementById("username").value.trim();
+        const pass = document.getElementById("password").value.trim();
+        const msg = document.getElementById("msg");
+
+        if(user === "" || pass === "") {
+            alert("Vui lòng nhập cả tên và mật khẩu!");
+            return;
+        }
+
+        const userRef = database.ref('users/' + user);
+
+        userRef.once('value').then((snapshot) => {
+            if (snapshot.exists()) {
+                // Nếu đã có tài khoản, kiểm tra mật khẩu
+                const userData = snapshot.val();
+                if (userData.password === pass) {
+                    localStorage.setItem("userRoblox", user);
+                    window.location.href = "giaodien.html";
+                } else {
+                    msg.innerHTML = "<span style='color:red'>Sai mật khẩu rồi bạn ơi!</span>";
+                }
+            } else {
+                // Nếu chưa có, tự động tạo tài khoản mới với pass này
+                userRef.set({
+                    password: pass,
+                    gems: 0
+                }).then(() => {
+                    localStorage.setItem("userRoblox", user);
+                    window.location.href = "giaodien.html";
+                });
+            }
+        });
+    }
+</script>
+</body>
+</html>
