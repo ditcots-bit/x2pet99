@@ -31,7 +31,9 @@
             databaseURL: "https://taixiupet99-default-rtdb.firebaseio.com" 
         };
         firebase.initializeApp(firebaseConfig);
-        const sessionRef = firebase.database().ref('gameSession');
+        const database = firebase.database();
+        const sessionRef = database.ref('gameSession');
+        const totalBetRef = database.ref('gameSession/totalBets'); // Đường dẫn reset tổng cược
 
         let timeLeft = 60;
         
@@ -47,7 +49,7 @@
                 ];
                 
                 // Cập nhật trạng thái kết quả
-                sessionRef.set({ 
+                sessionRef.update({ 
                     timeLeft: 0, 
                     dice: dice, 
                     status: "result" 
@@ -55,10 +57,19 @@
                 
                 document.getElementById("dice-info").innerText = "🎲 Phiên vừa rồi: " + dice.join(" - ");
                 
-                // 2. Nghỉ 5 giây để người chơi xem kết quả rồi mới sang ván mới
+                // 2. Nghỉ 5 giây chờ ván mới
                 timeLeft = 65; 
-            } else if (timeLeft <= 60) {
-                // Chỉ cập nhật lên Firebase trạng thái đặt cược
+
+            } else if (timeLeft === 60) {
+                // --- PHẦN MỚI THÊM: RESET TỔNG CƯỢC KHI BẮT ĐẦU PHIÊN MỚI ---
+                totalBetRef.set({ xiu: 0, tai: 0 });
+                
+                sessionRef.update({ 
+                    timeLeft: timeLeft, 
+                    status: "betting" 
+                });
+            } else if (timeLeft < 60) {
+                // Cập nhật đếm ngược bình thường
                 sessionRef.update({ 
                     timeLeft: timeLeft, 
                     status: "betting" 
