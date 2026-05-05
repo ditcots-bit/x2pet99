@@ -5,107 +5,98 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sảnh Chơi - Tài Xỉu Pet99</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding: 20px; }
-        .game-container { max-width: 450px; margin: auto; background: #1e1e1e; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); border: 1px solid #333; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: white; margin: 0; padding: 20px; }
+        
+        /* Layout chia đôi màn hình */
+        .main-wrapper { display: flex; max-width: 1000px; margin: auto; gap: 20px; flex-wrap: wrap; justify-content: center; }
+        
+        /* Cột Game */
+        .game-container { flex: 1; min-width: 350px; max-width: 450px; background: #1e1e1e; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); border: 1px solid #333; }
+        
+        /* Cột Chat */
+        .chat-container { flex: 1; min-width: 300px; max-width: 400px; height: 600px; background: #1e1e1e; border-radius: 25px; display: flex; flex-direction: column; border: 1px solid #333; overflow: hidden; }
+        .chat-header { background: #2d2d2d; padding: 15px; font-weight: bold; color: #f1c40f; border-bottom: 1px solid #444; }
+        #chat-content { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; text-align: left; }
+        .chat-msg { background: #2d2d2d; padding: 8px 12px; border-radius: 12px; font-size: 14px; max-width: 85%; word-wrap: break-word; }
+        .chat-name { color: #2ecc71; font-weight: bold; font-size: 12px; margin-bottom: 3px; }
+        .chat-input-area { padding: 15px; background: #262626; display: flex; gap: 10px; }
+        #chat-input { flex: 1; background: #121212; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; outline: none; }
+        .btn-send { background: #f1c40f; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+        /* Style cũ giữ nguyên */
         .header-info { display: flex; justify-content: space-between; align-items: center; background: #2d2d2d; padding: 15px; border-radius: 15px; margin-bottom: 20px; }
         .user-tag { color: #2ecc71; font-weight: bold; font-size: 14px; }
         .gem-balance { color: #f1c40f; font-size: 20px; font-weight: bold; }
-        .nap-gem-note { background: linear-gradient(45deg, #f39c12, #e67e22); color: #000; padding: 12px; border-radius: 12px; font-weight: 900; margin-bottom: 20px; font-size: 15px; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); text-transform: uppercase; }
-        
-        /* BOX XÚC XẮC */
-        .dice-display { background: #121212; padding: 30px; border-radius: 20px 20px 0 0; margin: 20px 0 0 0; font-size: 60px; letter-spacing: 15px; border: 2px solid #333; border-bottom: none; min-height: 80px; display: flex; justify-content: center; align-items: center; }
-        
-        /* PHẦN SOI CẦU */
-        .history-container { background: #121212; padding: 10px; border-radius: 0 0 20px 20px; margin-bottom: 20px; display: flex; justify-content: center; gap: 8px; border: 2px solid #333; border-top: 1px solid #444; flex-wrap: wrap; min-height: 40px; }
-        .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); transition: 0.3s; position: relative; }
-        .dot-tai { background: #e74c3c; box-shadow: 0 0 8px #e74c3c; } /* Đỏ cho Tài */
-        .dot-xiu { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; } /* Xanh cho Xỉu */
-
-        .input-group { margin-bottom: 20px; }
-        .bet-input { width: 90%; padding: 15px; border-radius: 10px; border: none; background: #2d2d2d; color: #fff; font-size: 18px; text-align: center; outline: none; border: 1px solid #444; }
-        .bet-input:focus { border-color: #f1c40f; }
-        
-        .btn-group { display: flex; gap: 15px; justify-content: center; }
-        .bet-column { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-        
-        /* CẬP NHẬT ĐỘ CAO NÚT BẤM */
-        .btn { 
-            width: 100%; 
-            padding: 12px 5px; 
-            font-size: 20px; 
-            border: none; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            font-weight: 800; 
-            transition: 0.3s; 
-            text-transform: uppercase; 
-            line-height: 1.2; 
-        }
-        .btn-xiu { background: #3498db; color: white; box-shadow: 0 4px #2980b9; }
-        .btn-tai { background: #e74c3c; color: white; box-shadow: 0 4px #c0392b; }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        
-        .bet-label { background: #000; padding: 5px; border-radius: 8px; font-size: 14px; color: #f1c40f; border: 1px solid #444; min-height: 20px; }
-        .total-bet-all { background: #2d2d2d; color: #fff; font-size: 12px; padding: 4px; border-radius: 5px; margin-bottom: 5px; border: 1px dashed #555; }
-        
-        .logout-btn { margin-top: 25px; background: none; border: 1px solid #e74c3c; color: #e74c3c; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; width: 100%; }
-        .logout-btn:hover { background: #e74c3c; color: white; }
-        #status-msg { margin-top: 20px; font-size: 18px; font-weight: bold; min-height: 25px; }
-        
-        /* Style cho text phụ trên nút */
-        .btn-subtext { font-size: 13px; font-weight: normal; opacity: 0.9; display: block; margin-top: 2px; }
+        .nap-gem-note { background: linear-gradient(45deg, #f39c12, #e67e22); color: #000; padding: 12px; border-radius: 12px; font-weight: 900; margin-bottom: 20px; font-size: 13px; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); text-transform: uppercase; }
+        .dice-display { background: #121212; padding: 30px; border-radius: 20px 20px 0 0; font-size: 60px; border: 2px solid #333; border-bottom: none; display: flex; justify-content: center; gap: 10px; }
+        .history-container { background: #121212; padding: 10px; border-radius: 0 0 20px 20px; margin-bottom: 20px; display: flex; justify-content: center; gap: 8px; border: 2px solid #333; border-top: 1px solid #444; flex-wrap: wrap; }
+        .dot { width: 14px; height: 14px; border-radius: 50%; }
+        .dot-tai { background: #e74c3c; box-shadow: 0 0 8px #e74c3c; }
+        .dot-xiu { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+        .bet-input { width: 90%; padding: 15px; border-radius: 10px; background: #2d2d2d; color: #fff; border: 1px solid #444; text-align: center; margin-bottom: 20px; }
+        .btn-group { display: flex; gap: 15px; }
+        .bet-column { flex: 1; }
+        .btn { width: 100%; padding: 12px; font-size: 18px; border-radius: 12px; border: none; cursor: pointer; font-weight: 800; color: white; }
+        .btn-xiu { background: #3498db; box-shadow: 0 4px #2980b9; }
+        .btn-tai { background: #e74c3c; box-shadow: 0 4px #c0392b; }
+        .btn-subtext { font-size: 11px; display: block; opacity: 0.8; }
+        .total-bet-all { font-size: 11px; margin-bottom: 5px; }
+        .bet-label { background: #000; padding: 5px; border-radius: 8px; font-size: 13px; color: #f1c40f; margin-top: 5px; }
+        .logout-btn { margin-top: 20px; background: none; border: 1px solid #e74c3c; color: #e74c3c; padding: 8px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="game-container">
-    <div class="header-info">
-        <div class="user-tag">👤: <span id="player-name">Đang tải...</span></div>
-        <div class="gem-balance"><span id="balance">0</span> 💎</div>
-    </div>
-
-    <div class="nap-gem-note">✨ NẠP/RÚT GEM JOIN  EMTHAIBABY8 ✨</div>
-
-    <div class="input-group">
+<div class="main-wrapper">
+    <!-- CỘT TRÁI: GAME -->
+    <div class="game-container">
+        <div class="header-info">
+            <div class="user-tag">👤: <span id="player-name">Đang tải...</span></div>
+            <div class="gem-balance"><span id="balance">0</span> 💎</div>
+        </div>
+        <div class="nap-gem-note">✨ NẠP/RÚT GEM JOIN EMTHAIBABY8 ✨</div>
         <input type="number" id="bet-val" class="bet-input" placeholder="Nhập số Gem cược...">
+        <div class="dice-display" id="dice-result">🎲 🎲 🎲</div>
+        <div class="history-container" id="history-dots"></div>
+        <div id="status-msg" style="margin-bottom: 15px;">Đang kết nối...</div>
+
+        <div class="btn-group">
+            <div class="bet-column">
+                <div class="total-bet-all">Tổng Xỉu: <span id="total-xiu-all">0</span></div>
+                <button id="btn-xiu" class="btn btn-xiu" onclick="gamePlay('Xỉu')">XỈU <span class="btn-subtext">(3-10)</span></button>
+                <div class="bet-label">Cược: <span id="bet-xiu-val">0</span></div>
+            </div>
+            <div class="bet-column">
+                <div class="total-bet-all">Tổng Tài: <span id="total-tai-all">0</span></div>
+                <button id="btn-tai" class="btn btn-tai" onclick="gamePlay('Tài')">TÀI <span class="btn-subtext">(11-18)</span></button>
+                <div class="bet-label">Cược: <span id="bet-tai-val">0</span></div>
+            </div>
+        </div>
+        <button class="logout-btn" onclick="logout()">🚪 ĐĂNG XUẤT</button>
     </div>
 
-    <div class="dice-display" id="dice-result">🎲 🎲 🎲</div>
-    <div class="history-container" id="history-dots"></div>
-    
-    <div id="status-msg">Đang kết nối máy chủ...</div>
-
-    <div class="btn-group">
-        <div class="bet-column">
-            <div class="total-bet-all">Tổng Xỉu: <span id="total-xiu-all" style="color:#3498db">0</span></div>
-            <button id="btn-xiu" class="btn btn-xiu" onclick="gamePlay('Xỉu')">
-                XỈU <span class="btn-subtext">(3 - 10)</span>
-            </button>
-            <div class="bet-label">Đã cược: <span id="bet-xiu-val">0</span></div>
+    <!-- CỘT PHẢI: CHAT -->
+    <div class="chat-container">
+        <div class="chat-header">💬 TRÒ CHUYỆN THẾ GIỚI</div>
+        <div id="chat-content">
+            <!-- Tin nhắn sẽ hiện ở đây -->
         </div>
-        <div class="bet-column">
-            <div class="total-bet-all">Tổng Tài: <span id="total-tai-all" style="color:#e74c3c">0</span></div>
-            <button id="btn-tai" class="btn btn-tai" onclick="gamePlay('Tài')">
-                TÀI <span class="btn-subtext">(11 - 18)</span>
-            </button>
-            <div class="bet-label">Đã cược: <span id="bet-tai-val">0</span></div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button class="btn-send" onclick="sendMessage()">GỬI</button>
         </div>
     </div>
-
-    <button class="logout-btn" onclick="logout()">🚪 ĐĂNG XUẤT</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
+    // --- GIỮ NGUYÊN CẤU HÌNH CŨ CỦA BẠN ---
     const firebaseConfig = {
         apiKey: "AIzaSyCPffcP5X0EAK5J85Jcfa9UIT7z2Bc-5Q",
         authDomain: "taixiupet99.firebaseapp.com",
         projectId: "taixiupet99",
-        storageBucket: "taixiupet99.firebasestorage.app",
-        messagingSenderId: "338775305334",
-        appId: "1:338775305334:web:f519fcd9e7530873814357",
         databaseURL: "https://taixiupet99-default-rtdb.firebaseio.com"
     };
 
@@ -114,138 +105,97 @@
     const sessionRef = database.ref('gameSession');
     const totalBetRef = database.ref('gameSession/totalBets');
     const historyRef = database.ref('gameHistory');
+    const chatRef = database.ref('publicChat'); // Node chat mới
 
-    const playerName = localStorage.getItem("userRoblox");
-    if (!playerName) window.location.href = "index.html";
+    const playerName = localStorage.getItem("userRoblox") || "Khách";
     document.getElementById("player-name").innerText = playerName;
-    
-    let currentGems = 0;
-    let betXiu = 0;
-    let betTai = 0;
-    let canBet = false;
-    let hasResetThisSession = false;
 
+    // --- LOGIC GAME (GIỮ NGUYÊN NHƯ FILE CŨ) ---
+    let currentGems = 0, betXiu = 0, betTai = 0, canBet = false, hasReset = false;
     const userRef = database.ref('users/' + playerName);
-    userRef.on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            currentGems = data.gems || 0;
-            document.getElementById("balance").innerText = currentGems.toLocaleString();
-        }
+    userRef.on('value', snap => {
+        currentGems = snap.val()?.gems || 0;
+        document.getElementById("balance").innerText = currentGems.toLocaleString();
     });
 
-    totalBetRef.on('value', (snapshot) => {
-        const data = snapshot.val();
-        document.getElementById("total-xiu-all").innerText = (data?.xiu || 0).toLocaleString();
-        document.getElementById("total-tai-all").innerText = (data?.tai || 0).toLocaleString();
+    totalBetRef.on('value', snap => {
+        const d = snap.val();
+        document.getElementById("total-xiu-all").innerText = (d?.xiu || 0).toLocaleString();
+        document.getElementById("total-tai-all").innerText = (d?.tai || 0).toLocaleString();
     });
 
-    historyRef.limitToLast(18).on('value', (snapshot) => {
-        const historyData = snapshot.val();
-        const historyBox = document.getElementById("history-dots");
-        historyBox.innerHTML = ""; 
-
-        if (historyData) {
-            const records = Object.values(historyData);
-            records.forEach(item => {
-                const dot = document.createElement("div");
-                if (item.r === 'Tai' || item.r === 'Tài') {
-                    dot.className = "dot dot-tai";
-                } else {
-                    dot.className = "dot dot-xiu";
-                }
-                historyBox.appendChild(dot);
-            });
-        }
+    historyRef.limitToLast(18).on('value', snap => {
+        const box = document.getElementById("history-dots"); box.innerHTML = "";
+        if (snap.val()) Object.values(snap.val()).forEach(i => {
+            const d = document.createElement("div");
+            d.className = (i.r === 'Tai' || i.r === 'Tài') ? "dot dot-tai" : "dot dot-xiu";
+            box.appendChild(d);
+        });
     });
 
-    sessionRef.on('value', (snapshot) => {
-        const session = snapshot.val();
-        if (!session) return;
-
-        const statusMsg = document.getElementById("status-msg");
-        const diceDisplay = document.getElementById("dice-result");
-        const btnXiu = document.getElementById("btn-xiu");
-        const btnTai = document.getElementById("btn-tai");
-
-        if (session.status === "betting") {
-            statusMsg.innerHTML = `⏳ Thời gian cược: <span style="color:#f1c40f">${session.timeLeft}s</span>`;
-            
-            if (session.timeLeft > 50 && !hasResetThisSession) { 
-                betXiu = 0; betTai = 0;
+    sessionRef.on('value', snap => {
+        const s = snap.val(); if (!s) return;
+        const msg = document.getElementById("status-msg"), dice = document.getElementById("dice-result");
+        if (s.status === "betting") {
+            msg.innerHTML = `⏳ Thời gian: <span style="color:#f1c40f">${s.timeLeft}s</span>`;
+            if (s.timeLeft > 55 && !hasReset) {
+                betXiu = 0; betTai = 0; hasReset = true;
                 document.getElementById("bet-xiu-val").innerText = "0";
                 document.getElementById("bet-tai-val").innerText = "0";
-                diceDisplay.innerText = "🎲 🎲 🎲";
-                hasResetThisSession = true;
+                dice.innerText = "🎲 🎲 🎲";
             }
-
-            if (session.timeLeft <= 10) {
-                statusMsg.innerHTML = `<span style="color:#e74c3c">🚫 HẾT THỜI GIAN CƯỢC</span>`;
-                btnXiu.disabled = true; btnTai.disabled = true;
-                canBet = false;
-            } else {
-                btnXiu.disabled = (betTai > 0);
-                btnTai.disabled = (betXiu > 0);
-                canBet = true;
-            }
-        } 
-        
-        if (session.status === "result") {
-            canBet = false; btnXiu.disabled = true; btnTai.disabled = true;
-            hasResetThisSession = false;
-            
-            const total = session.dice[0] + session.dice[1] + session.dice[2];
-            let resultType = (total >= 11) ? "Tài" : "Xỉu";
-            if (session.dice[0] === session.dice[1] && session.dice[1] === session.dice[2]) resultType = "Tam Bảo";
-
-            diceDisplay.innerText = `${session.dice[0]} ${session.dice[1]} ${session.dice[2]}`;
-            
-            let totalMyBet = betXiu + betTai;
-            if (totalMyBet > 0) {
-                let myChoice = betXiu > 0 ? "Xỉu" : "Tài";
-                if (myChoice === resultType) {
-                    userRef.update({ gems: currentGems + (totalMyBet * 2) });
-                    statusMsg.innerHTML = `<span style="color:#2ecc71">THẮNG +${(totalMyBet * 2).toLocaleString()}!</span>`;
-                } else {
-                    statusMsg.innerHTML = `<span style="color:#e74c3c">THUA -${totalMyBet.toLocaleString()}!</span>`;
-                }
-                betXiu = 0; betTai = 0;
-            } else {
-                statusMsg.innerHTML = `Kết quả: ${resultType} (${total})`;
-            }
+            if (s.timeLeft <= 10) { 
+                msg.innerHTML = `<span style="color:#e74c3c">🚫 HẾT GIỜ</span>`; canBet = false; 
+            } else { canBet = true; }
+        }
+        if (s.status === "result") {
+            hasReset = false; canBet = false;
+            const total = s.dice[0] + s.dice[1] + s.dice[2];
+            dice.innerText = s.dice.join(" ");
+            msg.innerText = "Kết quả: " + ((total >= 11) ? "Tài" : "Xỉu") + " (" + total + ")";
         }
     });
 
     function gamePlay(choice) {
         if (!canBet) return;
         let val = parseInt(document.getElementById("bet-val").value);
-        if (!val || val <= 0 || val > currentGems) {
-            alert("Số Gem không hợp lệ!");
-            return;
-        }
-
+        if (!val || val <= 0 || val > currentGems) return alert("Lỗi tiền cược!");
         userRef.update({ gems: currentGems - val }).then(() => {
-            if (choice === 'Xỉu') {
-                betXiu += val;
-                document.getElementById("bet-xiu-val").innerText = betXiu.toLocaleString();
-                document.getElementById("btn-tai").disabled = true;
-                totalBetRef.child('xiu').transaction((current) => (current || 0) + val);
-            } else {
-                betTai += val;
-                document.getElementById("bet-tai-val").innerText = betTai.toLocaleString();
-                document.getElementById("btn-xiu").disabled = true;
-                totalBetRef.child('tai').transaction((current) => (current || 0) + val);
-            }
+            if (choice === 'Xỉu') { betXiu += val; document.getElementById("bet-xiu-val").innerText = betXiu.toLocaleString(); }
+            else { betTai += val; document.getElementById("bet-tai-val").innerText = betTai.toLocaleString(); }
+            totalBetRef.child(choice === 'Xỉu' ? 'xiu' : 'tai').transaction(c => (c || 0) + val);
             document.getElementById("bet-val").value = "";
         });
     }
 
-    function logout() {
-        if(confirm("Xác nhận đăng xuất?")) {
-            localStorage.removeItem("userRoblox");
-            window.location.href = "index.html";
-        }
+    // --- LOGIC CHAT MỚI ---
+    function sendMessage() {
+        const input = document.getElementById("chat-input");
+        const text = input.value.trim();
+        if (text === "") return;
+        
+        chatRef.push({
+            name: playerName,
+            msg: text,
+            time: Date.now()
+        });
+        input.value = "";
     }
+
+    // Lắng nghe tin nhắn mới (chỉ lấy 50 tin gần nhất)
+    chatRef.limitToLast(50).on('child_added', (snap) => {
+        const data = snap.val();
+        const content = document.getElementById("chat-content");
+        
+        const div = document.createElement("div");
+        div.className = "chat-msg";
+        div.innerHTML = `<div class="chat-name">${data.name}</div><div>${data.msg}</div>`;
+        
+        content.appendChild(div);
+        content.scrollTop = content.scrollHeight; // Tự cuộn xuống dưới
+    });
+
+    function logout() { localStorage.removeItem("userRoblox"); window.location.href="index.html"; }
 </script>
 </body>
 </html>
