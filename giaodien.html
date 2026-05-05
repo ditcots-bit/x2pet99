@@ -6,14 +6,8 @@
     <title>Sảnh Chơi - Tài Xỉu Pet99</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: white; margin: 0; padding: 20px; }
-        
-        /* Layout chia đôi màn hình */
         .main-wrapper { display: flex; max-width: 1000px; margin: auto; gap: 20px; flex-wrap: wrap; justify-content: center; }
-        
-        /* Cột Game */
         .game-container { flex: 1; min-width: 350px; max-width: 450px; background: #1e1e1e; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); border: 1px solid #333; }
-        
-        /* Cột Chat */
         .chat-container { flex: 1; min-width: 300px; max-width: 400px; height: 600px; background: #1e1e1e; border-radius: 25px; display: flex; flex-direction: column; border: 1px solid #333; overflow: hidden; }
         .chat-header { background: #2d2d2d; padding: 15px; font-weight: bold; color: #f1c40f; border-bottom: 1px solid #444; }
         #chat-content { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; text-align: left; }
@@ -22,8 +16,6 @@
         .chat-input-area { padding: 15px; background: #262626; display: flex; gap: 10px; }
         #chat-input { flex: 1; background: #121212; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; outline: none; }
         .btn-send { background: #f1c40f; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-
-        /* Style cũ giữ nguyên */
         .header-info { display: flex; justify-content: space-between; align-items: center; background: #2d2d2d; padding: 15px; border-radius: 15px; margin-bottom: 20px; }
         .user-tag { color: #2ecc71; font-weight: bold; font-size: 14px; }
         .gem-balance { color: #f1c40f; font-size: 20px; font-weight: bold; }
@@ -36,7 +28,8 @@
         .bet-input { width: 90%; padding: 15px; border-radius: 10px; background: #2d2d2d; color: #fff; border: 1px solid #444; text-align: center; margin-bottom: 20px; }
         .btn-group { display: flex; gap: 15px; }
         .bet-column { flex: 1; }
-        .btn { width: 100%; padding: 12px; font-size: 18px; border-radius: 12px; border: none; cursor: pointer; font-weight: 800; color: white; }
+        .btn { width: 100%; padding: 12px; font-size: 18px; border-radius: 12px; border: none; cursor: pointer; font-weight: 800; color: white; transition: 0.3s; }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(1); }
         .btn-xiu { background: #3498db; box-shadow: 0 4px #2980b9; }
         .btn-tai { background: #e74c3c; box-shadow: 0 4px #c0392b; }
         .btn-subtext { font-size: 11px; display: block; opacity: 0.8; }
@@ -48,7 +41,6 @@
 <body>
 
 <div class="main-wrapper">
-    <!-- CỘT TRÁI: GAME -->
     <div class="game-container">
         <div class="header-info">
             <div class="user-tag">👤: <span id="player-name">Đang tải...</span></div>
@@ -75,12 +67,9 @@
         <button class="logout-btn" onclick="logout()">🚪 ĐĂNG XUẤT</button>
     </div>
 
-    <!-- CỘT PHẢI: CHAT -->
     <div class="chat-container">
         <div class="chat-header">💬 TRÒ CHUYỆN THẾ GIỚI</div>
-        <div id="chat-content">
-            <!-- Tin nhắn sẽ hiện ở đây -->
-        </div>
+        <div id="chat-content"></div>
         <div class="chat-input-area">
             <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." onkeypress="if(event.key==='Enter') sendMessage()">
             <button class="btn-send" onclick="sendMessage()">GỬI</button>
@@ -92,7 +81,6 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
-    // --- GIỮ NGUYÊN CẤU HÌNH CŨ CỦA BẠN ---
     const firebaseConfig = {
         apiKey: "AIzaSyCPffcP5X0EAK5J85Jcfa9UIT7z2Bc-5Q",
         authDomain: "taixiupet99.firebaseapp.com",
@@ -105,14 +93,14 @@
     const sessionRef = database.ref('gameSession');
     const totalBetRef = database.ref('gameSession/totalBets');
     const historyRef = database.ref('gameHistory');
-    const chatRef = database.ref('publicChat'); // Node chat mới
+    const chatRef = database.ref('publicChat');
 
     const playerName = localStorage.getItem("userRoblox") || "Khách";
     document.getElementById("player-name").innerText = playerName;
 
-    // --- LOGIC GAME (GIỮ NGUYÊN NHƯ FILE CŨ) ---
     let currentGems = 0, betXiu = 0, betTai = 0, canBet = false, hasReset = false;
     const userRef = database.ref('users/' + playerName);
+    
     userRef.on('value', snap => {
         currentGems = snap.val()?.gems || 0;
         document.getElementById("balance").innerText = currentGems.toLocaleString();
@@ -136,6 +124,8 @@
     sessionRef.on('value', snap => {
         const s = snap.val(); if (!s) return;
         const msg = document.getElementById("status-msg"), dice = document.getElementById("dice-result");
+        const btnX = document.getElementById("btn-xiu"), btnT = document.getElementById("btn-tai");
+
         if (s.status === "betting") {
             msg.innerHTML = `⏳ Thời gian: <span style="color:#f1c40f">${s.timeLeft}s</span>`;
             if (s.timeLeft > 55 && !hasReset) {
@@ -144,55 +134,81 @@
                 document.getElementById("bet-tai-val").innerText = "0";
                 dice.innerText = "🎲 🎲 🎲";
             }
+            
             if (s.timeLeft <= 10) { 
-                msg.innerHTML = `<span style="color:#e74c3c">🚫 HẾT GIỜ</span>`; canBet = false; 
-            } else { canBet = true; }
+                msg.innerHTML = `<span style="color:#e74c3c">🚫 HẾT GIỜ</span>`; 
+                canBet = false; 
+                btnX.disabled = true; btnT.disabled = true;
+            } else { 
+                canBet = true; 
+                // Cập nhật trạng thái nút dựa trên cược hiện tại
+                updateButtonState();
+            }
         }
         if (s.status === "result") {
             hasReset = false; canBet = false;
+            btnX.disabled = true; btnT.disabled = true;
             const total = s.dice[0] + s.dice[1] + s.dice[2];
             dice.innerText = s.dice.join(" ");
             msg.innerText = "Kết quả: " + ((total >= 11) ? "Tài" : "Xỉu") + " (" + total + ")";
         }
     });
 
+    function updateButtonState() {
+        if (!canBet) return;
+        const btnX = document.getElementById("btn-xiu"), btnT = document.getElementById("btn-tai");
+        if (betXiu > 0) { btnX.disabled = false; btnT.disabled = true; }
+        else if (betTai > 0) { btnX.disabled = true; btnT.disabled = false; }
+        else { btnX.disabled = false; btnT.disabled = false; }
+    }
+
     function gamePlay(choice) {
         if (!canBet) return;
+        
+        // Chống đặt cả 2 cửa ngay tại giao diện
+        if ((choice === 'Xỉu' && betTai > 0) || (choice === 'Tài' && betXiu > 0)) {
+            return alert("Bạn chỉ được cược một bên!");
+        }
+
         let val = parseInt(document.getElementById("bet-val").value);
         if (!val || val <= 0 || val > currentGems) return alert("Lỗi tiền cược!");
+        
+        // Tạm thời vô hiệu hóa nút để tránh spam click
+        document.getElementById("btn-xiu").disabled = true;
+        document.getElementById("btn-tai").disabled = true;
+
         userRef.update({ gems: currentGems - val }).then(() => {
-            if (choice === 'Xỉu') { betXiu += val; document.getElementById("bet-xiu-val").innerText = betXiu.toLocaleString(); }
-            else { betTai += val; document.getElementById("bet-tai-val").innerText = betTai.toLocaleString(); }
+            if (choice === 'Xỉu') { 
+                betXiu += val; 
+                document.getElementById("bet-xiu-val").innerText = betXiu.toLocaleString(); 
+            } else { 
+                betTai += val; 
+                document.getElementById("bet-tai-val").innerText = betTai.toLocaleString(); 
+            }
             totalBetRef.child(choice === 'Xỉu' ? 'xiu' : 'tai').transaction(c => (c || 0) + val);
             document.getElementById("bet-val").value = "";
+            updateButtonState();
+        }).catch(() => {
+            updateButtonState();
         });
     }
 
-    // --- LOGIC CHAT MỚI ---
     function sendMessage() {
         const input = document.getElementById("chat-input");
         const text = input.value.trim();
         if (text === "") return;
-        
-        chatRef.push({
-            name: playerName,
-            msg: text,
-            time: Date.now()
-        });
+        chatRef.push({ name: playerName, msg: text, time: Date.now() });
         input.value = "";
     }
 
-    // Lắng nghe tin nhắn mới (chỉ lấy 50 tin gần nhất)
     chatRef.limitToLast(50).on('child_added', (snap) => {
         const data = snap.val();
         const content = document.getElementById("chat-content");
-        
         const div = document.createElement("div");
         div.className = "chat-msg";
         div.innerHTML = `<div class="chat-name">${data.name}</div><div>${data.msg}</div>`;
-        
         content.appendChild(div);
-        content.scrollTop = content.scrollHeight; // Tự cuộn xuống dưới
+        content.scrollTop = content.scrollHeight;
     });
 
     function logout() { localStorage.removeItem("userRoblox"); window.location.href="index.html"; }
