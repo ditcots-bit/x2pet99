@@ -8,13 +8,15 @@
         .status-box { border: 2px solid #0f0; display: inline-block; padding: 20px; border-radius: 10px; }
         #clock { font-size: 48px; margin: 10px 0; }
         .info { color: #888; font-size: 14px; }
+        #history-log { margin-top: 15px; font-size: 12px; color: #555; }
     </style>
 </head>
 <body>
     <div class="status-box">
-        <h2>MÁY CHỦ ĐANG CHẠY</h2>
+        <h2>MÁY CHỦ ĐANG CHẠY (V3 - SOI CẦU)</h2>
         <h1 id="clock">Khởi động...</h1>
         <div id="dice-info">Kết quả phiên trước: --</div>
+        <div id="history-log">Đang tải lịch sử...</div>
         <p class="info">Vui lòng không đóng tab này để hệ thống luôn chạy.</p>
     </div>
 
@@ -33,7 +35,8 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const sessionRef = database.ref('gameSession');
-        const totalBetRef = database.ref('gameSession/totalBets'); // Đường dẫn reset tổng cược
+        const totalBetRef = database.ref('gameSession/totalBets');
+        const historyRef = database.ref('gameHistory'); // Nhánh lưu trữ lịch sử phiên
 
         let timeLeft = 60;
         
@@ -41,27 +44,49 @@
             timeLeft--;
             
             if (timeLeft <= 0) {
-                // 1. Tạo kết quả khi hết giờ
-                const dice = [
-                    Math.floor(Math.random() * 6) + 1, 
-                    Math.floor(Math.random() * 6) + 1, 
-                    Math.floor(Math.random() * 6) + 1
-                ];
+                // 1. Tạo kết quả xúc xắc
+                const d1 = Math.floor(Math.random() * 6) + 1;
+                const d2 = Math.floor(Math.random() * 6) + 1;
+                const d3 = Math.floor(Math.random() * 6) + 1;
+                const dice = [d1, d2, d3];
+                const total = d1 + d2 + d3;
                 
-                // Cập nhật trạng thái kết quả
+                // Xác định Tài hay Xỉu để lưu lịch sử
+                let resultText = (total >= 11) ? "Tai" : "Xiu";
+                
+                // 2. Cập nhật trạng thái kết quả lên Firebase
                 sessionRef.update({ 
                     timeLeft: 0, 
                     dice: dice, 
                     status: "result" 
                 });
+
+                // 3. LƯU VÀO LỊCH SỬ (SOI CẦU)
+                historyRef.push({
+                    r: resultText,
+                    t: Date.now()
+                });
+
+                // Tự động dọn dẹp: Chỉ giữ lại 20 phiên gần nhất cho nhẹ máy
+                historyRef.once('value', (snapshot) => {
+                    if (snapshot.numChildren() > 20) {
+                        let updates = {};
+                        let count = 0;
+                        snapshot.forEach((child) => {
+                            if (count < snapshot.numChildren() - 20) {
+                                updates[child.key] = null;
+                            }
+                            count++;
+                        });
+                        historyRef.update(updates);
+                    }
+                });
                 
-                document.getElementById("dice-info").innerText = "🎲 Phiên vừa rồi: " + dice.join(" - ");
-                
-                // 2. Nghỉ 5 giây chờ ván mới
+                document.getElementById("dice-info").innerText = `🎲 Phiên vừa rồi: ${dice.join(" - ")} (${resultText})`;
                 timeLeft = 65; 
 
             } else if (timeLeft === 60) {
-                // --- PHẦN MỚI THÊM: RESET TỔNG CƯỢC KHI BẮT ĐẦU PHIÊN MỚI ---
+                // RESET TỔNG CƯỢC KHI BẮT ĐẦU PHIÊN MỚI
                 totalBetRef.set({ xiu: 0, tai: 0 });
                 
                 sessionRef.update({ 
@@ -69,18 +94,27 @@
                     status: "betting" 
                 });
             } else if (timeLeft < 60) {
-                // Cập nhật đếm ngược bình thường
                 sessionRef.update({ 
                     timeLeft: timeLeft, 
                     status: "betting" 
                 });
             }
 
-            // Hiển thị trên màn hình máy chủ (server)
-            let displayTime = timeLeft > 60 ? "Đang chờ ván mới..." : timeLeft + "s";
+            // Hiển thị thời gian trên màn hình server
+            let displayTime = timeLeft > 60 ? "Đang trả thưởng..." : timeLeft + "s";
             document.getElementById("clock").innerText = displayTime;
             
         }, 1000);
+
+        // Hiển thị log lịch sử ngay trên màn hình server để bạn dễ theo dõi
+        historyRef.limitToLast(10).on('value', (snapshot) => {
+            let log = "Cầu gần đây: ";
+            snapshot.forEach(child => {
+                let val = child.val();
+                log += (val.r === "Tai" ? "🔴" : "🟢") + " ";
+            });
+            document.getElementById("history-log").innerText = log;
+        });
     </script>
 </body>
 </html>
