@@ -19,15 +19,15 @@
         .header-info { display: flex; justify-content: space-between; align-items: center; background: #2d2d2d; padding: 15px; border-radius: 15px; margin-bottom: 20px; }
         .user-tag { color: #2ecc71; font-weight: bold; font-size: 14px; }
         .gem-balance { color: #f1c40f; font-size: 20px; font-weight: bold; }
-        .nap-gem-note { background: linear-gradient(45deg, #f39c12, #e67e22); color: #000; padding: 12px; border-radius: 12px; font-weight: 900; margin-bottom: 20px; font-size: 13px; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); text-transform: uppercase; }
+        .nap-gem-note { background: linear-gradient(45deg, #f39c12, #e67e22); color: #000; padding: 12px; border-radius: 12px; font-weight: 900; margin-bottom: 20px; font-size: 13px; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); text-transform: uppercase; text-align: center;}
         .dice-display { background: #121212; padding: 30px; border-radius: 20px 20px 0 0; font-size: 60px; border: 2px solid #333; border-bottom: none; display: flex; justify-content: center; gap: 10px; }
         .history-container { background: #121212; padding: 10px; border-radius: 0 0 20px 20px; margin-bottom: 20px; display: flex; justify-content: center; gap: 8px; border: 2px solid #333; border-top: 1px solid #444; flex-wrap: wrap; }
         .dot { width: 14px; height: 14px; border-radius: 50%; }
         .dot-tai { background: #e74c3c; box-shadow: 0 0 8px #e74c3c; }
         .dot-xiu { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
-        .bet-input { width: 90%; padding: 15px; border-radius: 10px; background: #2d2d2d; color: #fff; border: 1px solid #444; text-align: center; margin-bottom: 20px; }
+        .bet-input { width: 90%; padding: 15px; border-radius: 10px; background: #2d2d2d; color: #fff; border: 1px solid #444; text-align: center; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto; }
         .btn-group { display: flex; gap: 15px; }
-        .bet-column { flex: 1; }
+        .bet-column { flex: 1; text-align: center;}
         .btn { width: 100%; padding: 12px; font-size: 18px; border-radius: 12px; border: none; cursor: pointer; font-weight: 800; color: white; transition: 0.3s; }
         .btn:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(1); }
         .btn-xiu { background: #3498db; box-shadow: 0 4px #2980b9; }
@@ -36,6 +36,7 @@
         .total-bet-all { font-size: 11px; margin-bottom: 5px; }
         .bet-label { background: #000; padding: 5px; border-radius: 8px; font-size: 13px; color: #f1c40f; margin-top: 5px; }
         .logout-btn { margin-top: 20px; background: none; border: 1px solid #e74c3c; color: #e74c3c; padding: 8px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; }
+        #status-msg { text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -98,7 +99,7 @@
     const playerName = localStorage.getItem("userRoblox") || "Khách";
     document.getElementById("player-name").innerText = playerName;
 
-    let currentGems = 0, betXiu = 0, betTai = 0, canBet = false, hasReset = false;
+    let currentGems = 0, betXiu = 0, betTai = 0, canBet = false, hasReset = true;
     const userRef = database.ref('users/' + playerName);
     
     userRef.on('value', snap => {
@@ -114,7 +115,8 @@
 
     historyRef.limitToLast(18).on('value', snap => {
         const box = document.getElementById("history-dots"); box.innerHTML = "";
-        if (snap.val()) Object.values(snap.val()).forEach(i => {
+        const data = snap.val();
+        if (data) Object.values(data).forEach(i => {
             const d = document.createElement("div");
             d.className = (i.r === 'Tai' || i.r === 'Tài') ? "dot dot-tai" : "dot dot-xiu";
             box.appendChild(d);
@@ -127,20 +129,21 @@
         const btnX = document.getElementById("btn-xiu"), btnT = document.getElementById("btn-tai");
 
         if (s.status === "betting") {
-            msg.innerHTML = `⏳ Thời gian: <span style="color:#f1c40f">${s.timeLeft}s</span>`;
-            if (s.timeLeft > 55 && !hasReset) {
+            if (s.timeLeft > 0) {
+                msg.innerHTML = `⏳ Thời gian: <span style="color:#f1c40f">${s.timeLeft}s</span>`;
+                canBet = s.timeLeft > 10;
+                if (!canBet) {
+                    msg.innerHTML = `<span style="color:#e74c3c">🚫 HẾT GIỜ ĐẶT</span>`;
+                }
+                updateButtonState();
+            }
+
+            // Khi bắt đầu phiên mới (Server reset timeLeft về 60)
+            if (s.timeLeft >= 59 && !hasReset) {
                 betXiu = 0; betTai = 0; hasReset = true;
                 document.getElementById("bet-xiu-val").innerText = "0";
                 document.getElementById("bet-tai-val").innerText = "0";
                 dice.innerText = "🎲 🎲 🎲";
-            }
-            
-            if (s.timeLeft <= 10) { 
-                msg.innerHTML = `<span style="color:#e74c3c">🚫 HẾT GIỜ</span>`; 
-                canBet = false; 
-                btnX.disabled = true; btnT.disabled = true;
-            } else { 
-                canBet = true; 
                 updateButtonState();
             }
         }
@@ -151,37 +154,36 @@
             
             const total = s.dice[0] + s.dice[1] + s.dice[2];
             let resultType = (total >= 11) ? "Tài" : "Xỉu";
-            // Check Tam Bảo (3 con giống nhau) nếu game bạn có luật này, thường Tam Bảo nhà cái ăn hết
-            if (s.dice[0] === s.dice[1] && s.dice[1] === s.dice[2]) resultType = "Tam Bảo";
-
             dice.innerText = s.dice.join(" ");
             
-            // --- LOGIC TRẢ THƯỞNG KHI THẮNG ---
-            if (hasReset) { // Chỉ xử lý kết quả một lần mỗi phiên
-                let totalMyBet = betXiu + betTai;
-                if (totalMyBet > 0) {
-                    let myChoice = (betXiu > 0) ? "Xỉu" : "Tài";
-                    
+            // XỬ LÝ TRẢ THƯỞNG BẰNG TRANSACTION
+            if (hasReset) {
+                let myBetAmount = (betXiu > 0) ? betXiu : (betTai > 0 ? betTai : 0);
+                let myChoice = (betXiu > 0) ? "Xỉu" : (betTai > 0 ? "Tài" : "");
+
+                if (myBetAmount > 0 && myChoice !== "") {
                     if (myChoice === resultType) {
-                        const winAmount = totalMyBet * 2;
-                        userRef.update({ gems: currentGems + winAmount });
-                        msg.innerHTML = `<span style="color:#2ecc71">THẮNG +${winAmount.toLocaleString()}!</span>`;
+                        const winAmount = myBetAmount * 2;
+                        userRef.child('gems').transaction(current => (current || 0) + winAmount);
+                        msg.innerHTML = `<span style="color:#2ecc71">THẮNG: +${winAmount.toLocaleString()} 💎</span>`;
                     } else {
-                        msg.innerHTML = `<span style="color:#e74c3c">THUA -${totalMyBet.toLocaleString()}!</span>`;
+                        msg.innerHTML = `<span style="color:#e74c3c">KẾT QUẢ: ${resultType} (THUA)</span>`;
                     }
-                    // Reset biến cược sau khi đã tính toán xong
-                    betXiu = 0; betTai = 0;
                 } else {
-                    msg.innerText = `Kết quả: ${resultType} (${total})`;
+                    msg.innerHTML = `Kết quả: <b style="color:#f1c40f">${resultType}</b> (${total})`;
                 }
-                hasReset = false; // Đánh dấu đã xong phiên này
+                hasReset = false; // Khóa lại cho đến khi có phiên betting mới
+                betXiu = 0; betTai = 0;
             }
         }
     });
 
     function updateButtonState() {
-        if (!canBet) return;
         const btnX = document.getElementById("btn-xiu"), btnT = document.getElementById("btn-tai");
+        if (!canBet) {
+            btnX.disabled = true; btnT.disabled = true;
+            return;
+        }
         if (betXiu > 0) { btnX.disabled = false; btnT.disabled = true; }
         else if (betTai > 0) { btnX.disabled = true; btnT.disabled = false; }
         else { btnX.disabled = false; btnT.disabled = false; }
@@ -189,29 +191,28 @@
 
     function gamePlay(choice) {
         if (!canBet) return;
-        if ((choice === 'Xỉu' && betTai > 0) || (choice === 'Tài' && betXiu > 0)) {
-            return alert("Bạn chỉ được cược một bên!");
-        }
-
         let val = parseInt(document.getElementById("bet-val").value);
-        if (!val || val <= 0 || val > currentGems) return alert("Lỗi tiền cược!");
-        
-        document.getElementById("btn-xiu").disabled = true;
-        document.getElementById("btn-tai").disabled = true;
+        if (!val || val <= 0 || val > currentGems) return alert("Số tiền không hợp lệ!");
 
-        userRef.update({ gems: currentGems - val }).then(() => {
-            if (choice === 'Xỉu') { 
-                betXiu += val; 
-                document.getElementById("bet-xiu-val").innerText = betXiu.toLocaleString(); 
-            } else { 
-                betTai += val; 
-                document.getElementById("bet-tai-val").innerText = betTai.toLocaleString(); 
+        // Trừ tiền bằng transaction để an toàn tuyệt đối
+        userRef.child('gems').transaction(current => {
+            if (current >= val) return current - val;
+            return; // Hủy nếu không đủ tiền
+        }, (error, committed) => {
+            if (committed) {
+                if (choice === 'Xỉu') {
+                    betXiu += val;
+                    document.getElementById("bet-xiu-val").innerText = betXiu.toLocaleString();
+                } else {
+                    betTai += val;
+                    document.getElementById("bet-tai-val").innerText = betTai.toLocaleString();
+                }
+                totalBetRef.child(choice === 'Xỉu' ? 'xiu' : 'tai').transaction(c => (c || 0) + val);
+                document.getElementById("bet-val").value = "";
+                updateButtonState();
+            } else {
+                alert("Giao dịch thất bại hoặc bạn không đủ Gem!");
             }
-            totalBetRef.child(choice === 'Xỉu' ? 'xiu' : 'tai').transaction(c => (c || 0) + val);
-            document.getElementById("bet-val").value = "";
-            updateButtonState();
-        }).catch(() => {
-            updateButtonState();
         });
     }
 
@@ -223,7 +224,7 @@
         input.value = "";
     }
 
-    chatRef.limitToLast(50).on('child_added', (snap) => {
+    chatRef.limitToLast(50).on('child_added', snap => {
         const data = snap.val();
         const content = document.getElementById("chat-content");
         const div = document.createElement("div");
