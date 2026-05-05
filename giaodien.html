@@ -24,18 +24,36 @@
         .input-group { margin-bottom: 20px; }
         .bet-input { width: 90%; padding: 15px; border-radius: 10px; border: none; background: #2d2d2d; color: #fff; font-size: 18px; text-align: center; outline: none; border: 1px solid #444; }
         .bet-input:focus { border-color: #f1c40f; }
+        
         .btn-group { display: flex; gap: 15px; justify-content: center; }
         .bet-column { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-        .btn { width: 100%; padding: 18px; font-size: 20px; border: none; border-radius: 12px; cursor: pointer; font-weight: 800; transition: 0.3s; text-transform: uppercase; }
+        
+        /* CẬP NHẬT ĐỘ CAO NÚT BẤM */
+        .btn { 
+            width: 100%; 
+            padding: 12px 5px; 
+            font-size: 20px; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-weight: 800; 
+            transition: 0.3s; 
+            text-transform: uppercase; 
+            line-height: 1.2; 
+        }
         .btn-xiu { background: #3498db; color: white; box-shadow: 0 4px #2980b9; }
         .btn-tai { background: #e74c3c; color: white; box-shadow: 0 4px #c0392b; }
         .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        
         .bet-label { background: #000; padding: 5px; border-radius: 8px; font-size: 14px; color: #f1c40f; border: 1px solid #444; min-height: 20px; }
         .total-bet-all { background: #2d2d2d; color: #fff; font-size: 12px; padding: 4px; border-radius: 5px; margin-bottom: 5px; border: 1px dashed #555; }
         
         .logout-btn { margin-top: 25px; background: none; border: 1px solid #e74c3c; color: #e74c3c; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; width: 100%; }
         .logout-btn:hover { background: #e74c3c; color: white; }
         #status-msg { margin-top: 20px; font-size: 18px; font-weight: bold; min-height: 25px; }
+        
+        /* Style cho text phụ trên nút */
+        .btn-subtext { font-size: 13px; font-weight: normal; opacity: 0.9; display: block; margin-top: 2px; }
     </style>
 </head>
 <body>
@@ -52,23 +70,24 @@
         <input type="number" id="bet-val" class="bet-input" placeholder="Nhập số Gem cược...">
     </div>
 
-    <!-- KHU VỰC HIỂN THỊ XÚC XẮC VÀ SOI CẦU -->
     <div class="dice-display" id="dice-result">🎲 🎲 🎲</div>
-    <div class="history-container" id="history-dots">
-        <!-- Chấm lịch sử sẽ được render tự động -->
-    </div>
+    <div class="history-container" id="history-dots"></div>
     
     <div id="status-msg">Đang kết nối máy chủ...</div>
 
     <div class="btn-group">
         <div class="bet-column">
             <div class="total-bet-all">Tổng Xỉu: <span id="total-xiu-all" style="color:#3498db">0</span></div>
-            <button id="btn-xiu" class="btn btn-xiu" onclick="gamePlay('Xỉu')">XỈU</button>
+            <button id="btn-xiu" class="btn btn-xiu" onclick="gamePlay('Xỉu')">
+                XỈU <span class="btn-subtext">(3 - 10)</span>
+            </button>
             <div class="bet-label">Đã cược: <span id="bet-xiu-val">0</span></div>
         </div>
         <div class="bet-column">
             <div class="total-bet-all">Tổng Tài: <span id="total-tai-all" style="color:#e74c3c">0</span></div>
-            <button id="btn-tai" class="btn btn-tai" onclick="gamePlay('Tài')">TÀI</button>
+            <button id="btn-tai" class="btn btn-tai" onclick="gamePlay('Tài')">
+                TÀI <span class="btn-subtext">(11 - 18)</span>
+            </button>
             <div class="bet-label">Đã cược: <span id="bet-tai-val">0</span></div>
         </div>
     </div>
@@ -106,7 +125,6 @@
     let canBet = false;
     let hasResetThisSession = false;
 
-    // Lấy số dư
     const userRef = database.ref('users/' + playerName);
     userRef.on('value', (snapshot) => {
         const data = snapshot.val();
@@ -116,14 +134,12 @@
         }
     });
 
-    // Cập nhật tổng cược server
     totalBetRef.on('value', (snapshot) => {
         const data = snapshot.val();
         document.getElementById("total-xiu-all").innerText = (data?.xiu || 0).toLocaleString();
         document.getElementById("total-tai-all").innerText = (data?.tai || 0).toLocaleString();
     });
 
-    // Xử lý hiển thị chấm lịch sử (Soi cầu)
     historyRef.limitToLast(18).on('value', (snapshot) => {
         const historyData = snapshot.val();
         const historyBox = document.getElementById("history-dots");
@@ -133,7 +149,6 @@
             const records = Object.values(historyData);
             records.forEach(item => {
                 const dot = document.createElement("div");
-                // Kiểm tra kết quả để gán màu chấm
                 if (item.r === 'Tai' || item.r === 'Tài') {
                     dot.className = "dot dot-tai";
                 } else {
@@ -144,7 +159,6 @@
         }
     });
 
-    // Lắng nghe phiên game
     sessionRef.on('value', (snapshot) => {
         const session = snapshot.val();
         if (!session) return;
@@ -190,7 +204,6 @@
             if (totalMyBet > 0) {
                 let myChoice = betXiu > 0 ? "Xỉu" : "Tài";
                 if (myChoice === resultType) {
-                    // Trúng thưởng (X2 tiền cược)
                     userRef.update({ gems: currentGems + (totalMyBet * 2) });
                     statusMsg.innerHTML = `<span style="color:#2ecc71">THẮNG +${(totalMyBet * 2).toLocaleString()}!</span>`;
                 } else {
