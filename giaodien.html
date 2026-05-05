@@ -15,9 +15,9 @@
         /* BOX XÚC XẮC */
         .dice-display { background: #121212; padding: 30px; border-radius: 20px 20px 0 0; margin: 20px 0 0 0; font-size: 60px; letter-spacing: 15px; border: 2px solid #333; border-bottom: none; min-height: 80px; display: flex; justify-content: center; align-items: center; }
         
-        /* PHẦN SOI CẦU MỚI */
-        .history-container { background: #121212; padding: 10px; border-radius: 0 0 20px 20px; margin-bottom: 20px; display: flex; justify-content: center; gap: 8px; border: 2px solid #333; border-top: 1px solid #444; flex-wrap: wrap; }
-        .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); transition: 0.3s; }
+        /* PHẦN SOI CẦU */
+        .history-container { background: #121212; padding: 10px; border-radius: 0 0 20px 20px; margin-bottom: 20px; display: flex; justify-content: center; gap: 8px; border: 2px solid #333; border-top: 1px solid #444; flex-wrap: wrap; min-height: 40px; }
+        .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); transition: 0.3s; position: relative; }
         .dot-tai { background: #e74c3c; box-shadow: 0 0 8px #e74c3c; } /* Đỏ cho Tài */
         .dot-xiu { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; } /* Xanh cho Xỉu */
 
@@ -55,7 +55,7 @@
     <!-- KHU VỰC HIỂN THỊ XÚC XẮC VÀ SOI CẦU -->
     <div class="dice-display" id="dice-result">🎲 🎲 🎲</div>
     <div class="history-container" id="history-dots">
-        <!-- Chấm lịch sử sẽ hiện ở đây -->
+        <!-- Chấm lịch sử sẽ được render tự động -->
     </div>
     
     <div id="status-msg">Đang kết nối máy chủ...</div>
@@ -94,7 +94,7 @@
     const database = firebase.database();
     const sessionRef = database.ref('gameSession');
     const totalBetRef = database.ref('gameSession/totalBets');
-    const historyRef = database.ref('gameHistory'); // Nhánh lịch sử
+    const historyRef = database.ref('gameHistory');
 
     const playerName = localStorage.getItem("userRoblox");
     if (!playerName) window.location.href = "index.html";
@@ -106,7 +106,7 @@
     let canBet = false;
     let hasResetThisSession = false;
 
-    // Lấy số dư tài khoản
+    // Lấy số dư
     const userRef = database.ref('users/' + playerName);
     userRef.on('value', (snapshot) => {
         const data = snapshot.val();
@@ -116,25 +116,29 @@
         }
     });
 
-    // Cập nhật tổng cược toàn server
+    // Cập nhật tổng cược server
     totalBetRef.on('value', (snapshot) => {
         const data = snapshot.val();
         document.getElementById("total-xiu-all").innerText = (data?.xiu || 0).toLocaleString();
         document.getElementById("total-tai-all").innerText = (data?.tai || 0).toLocaleString();
     });
 
-    // Lắng nghe lịch sử phiên (Soi cầu)
-    historyRef.on('value', (snapshot) => {
+    // Xử lý hiển thị chấm lịch sử (Soi cầu)
+    historyRef.limitToLast(18).on('value', (snapshot) => {
         const historyData = snapshot.val();
         const historyBox = document.getElementById("history-dots");
         historyBox.innerHTML = ""; 
 
         if (historyData) {
-            // Hiển thị tối đa 15 chấm gần nhất
             const records = Object.values(historyData);
             records.forEach(item => {
                 const dot = document.createElement("div");
-                dot.className = `dot ${item.r === 'Tai' ? 'dot-tai' : 'dot-xiu'}`;
+                // Kiểm tra kết quả để gán màu chấm
+                if (item.r === 'Tai' || item.r === 'Tài') {
+                    dot.className = "dot dot-tai";
+                } else {
+                    dot.className = "dot dot-xiu";
+                }
                 historyBox.appendChild(dot);
             });
         }
@@ -159,8 +163,6 @@
                 document.getElementById("bet-tai-val").innerText = "0";
                 diceDisplay.innerText = "🎲 🎲 🎲";
                 hasResetThisSession = true;
-                document.getElementById("total-xiu-all").innerText = "0";
-                document.getElementById("total-tai-all").innerText = "0";
             }
 
             if (session.timeLeft <= 10) {
@@ -188,6 +190,7 @@
             if (totalMyBet > 0) {
                 let myChoice = betXiu > 0 ? "Xỉu" : "Tài";
                 if (myChoice === resultType) {
+                    // Trúng thưởng (X2 tiền cược)
                     userRef.update({ gems: currentGems + (totalMyBet * 2) });
                     statusMsg.innerHTML = `<span style="color:#2ecc71">THẮNG +${(totalMyBet * 2).toLocaleString()}!</span>`;
                 } else {
