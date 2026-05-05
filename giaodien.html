@@ -141,16 +141,41 @@
                 btnX.disabled = true; btnT.disabled = true;
             } else { 
                 canBet = true; 
-                // Cập nhật trạng thái nút dựa trên cược hiện tại
                 updateButtonState();
             }
         }
+        
         if (s.status === "result") {
-            hasReset = false; canBet = false;
+            canBet = false;
             btnX.disabled = true; btnT.disabled = true;
+            
             const total = s.dice[0] + s.dice[1] + s.dice[2];
+            let resultType = (total >= 11) ? "Tài" : "Xỉu";
+            // Check Tam Bảo (3 con giống nhau) nếu game bạn có luật này, thường Tam Bảo nhà cái ăn hết
+            if (s.dice[0] === s.dice[1] && s.dice[1] === s.dice[2]) resultType = "Tam Bảo";
+
             dice.innerText = s.dice.join(" ");
-            msg.innerText = "Kết quả: " + ((total >= 11) ? "Tài" : "Xỉu") + " (" + total + ")";
+            
+            // --- LOGIC TRẢ THƯỞNG KHI THẮNG ---
+            if (hasReset) { // Chỉ xử lý kết quả một lần mỗi phiên
+                let totalMyBet = betXiu + betTai;
+                if (totalMyBet > 0) {
+                    let myChoice = (betXiu > 0) ? "Xỉu" : "Tài";
+                    
+                    if (myChoice === resultType) {
+                        const winAmount = totalMyBet * 2;
+                        userRef.update({ gems: currentGems + winAmount });
+                        msg.innerHTML = `<span style="color:#2ecc71">THẮNG +${winAmount.toLocaleString()}!</span>`;
+                    } else {
+                        msg.innerHTML = `<span style="color:#e74c3c">THUA -${totalMyBet.toLocaleString()}!</span>`;
+                    }
+                    // Reset biến cược sau khi đã tính toán xong
+                    betXiu = 0; betTai = 0;
+                } else {
+                    msg.innerText = `Kết quả: ${resultType} (${total})`;
+                }
+                hasReset = false; // Đánh dấu đã xong phiên này
+            }
         }
     });
 
@@ -164,8 +189,6 @@
 
     function gamePlay(choice) {
         if (!canBet) return;
-        
-        // Chống đặt cả 2 cửa ngay tại giao diện
         if ((choice === 'Xỉu' && betTai > 0) || (choice === 'Tài' && betXiu > 0)) {
             return alert("Bạn chỉ được cược một bên!");
         }
@@ -173,7 +196,6 @@
         let val = parseInt(document.getElementById("bet-val").value);
         if (!val || val <= 0 || val > currentGems) return alert("Lỗi tiền cược!");
         
-        // Tạm thời vô hiệu hóa nút để tránh spam click
         document.getElementById("btn-xiu").disabled = true;
         document.getElementById("btn-tai").disabled = true;
 
