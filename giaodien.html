@@ -11,7 +11,16 @@
         .user-tag { color: #2ecc71; font-weight: bold; font-size: 14px; }
         .gem-balance { color: #f1c40f; font-size: 20px; font-weight: bold; }
         .nap-gem-note { background: linear-gradient(45deg, #f39c12, #e67e22); color: #000; padding: 12px; border-radius: 12px; font-weight: 900; margin-bottom: 20px; font-size: 15px; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); text-transform: uppercase; }
-        .dice-display { background: #121212; padding: 30px; border-radius: 20px; margin: 20px 0; font-size: 60px; letter-spacing: 15px; border: 2px solid #333; min-height: 80px; display: flex; justify-content: center; align-items: center; }
+        
+        /* BOX XÚC XẮC */
+        .dice-display { background: #121212; padding: 30px; border-radius: 20px 20px 0 0; margin: 20px 0 0 0; font-size: 60px; letter-spacing: 15px; border: 2px solid #333; border-bottom: none; min-height: 80px; display: flex; justify-content: center; align-items: center; }
+        
+        /* PHẦN SOI CẦU MỚI */
+        .history-container { background: #121212; padding: 10px; border-radius: 0 0 20px 20px; margin-bottom: 20px; display: flex; justify-content: center; gap: 8px; border: 2px solid #333; border-top: 1px solid #444; flex-wrap: wrap; }
+        .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); transition: 0.3s; }
+        .dot-tai { background: #e74c3c; box-shadow: 0 0 8px #e74c3c; } /* Đỏ cho Tài */
+        .dot-xiu { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; } /* Xanh cho Xỉu */
+
         .input-group { margin-bottom: 20px; }
         .bet-input { width: 90%; padding: 15px; border-radius: 10px; border: none; background: #2d2d2d; color: #fff; font-size: 18px; text-align: center; outline: none; border: 1px solid #444; }
         .bet-input:focus { border-color: #f1c40f; }
@@ -26,8 +35,6 @@
         
         .logout-btn { margin-top: 25px; background: none; border: 1px solid #e74c3c; color: #e74c3c; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; width: 100%; }
         .logout-btn:hover { background: #e74c3c; color: white; }
-
-        .rut-gem-note { margin-top: 20px; padding: 15px; background: #2d2d2d; border-radius: 12px; border-left: 4px solid #f1c40f; font-size: 13px; color: #ccc; line-height: 1.6; text-align: left; }
         #status-msg { margin-top: 20px; font-size: 18px; font-weight: bold; min-height: 25px; }
     </style>
 </head>
@@ -45,19 +52,21 @@
         <input type="number" id="bet-val" class="bet-input" placeholder="Nhập số Gem cược...">
     </div>
 
+    <!-- KHU VỰC HIỂN THỊ XÚC XẮC VÀ SOI CẦU -->
     <div class="dice-display" id="dice-result">🎲 🎲 🎲</div>
+    <div class="history-container" id="history-dots">
+        <!-- Chấm lịch sử sẽ hiện ở đây -->
+    </div>
     
     <div id="status-msg">Đang kết nối máy chủ...</div>
 
     <div class="btn-group">
         <div class="bet-column">
-            <!-- HIỂN THỊ TỔNG CƯỢC TOÀN SERVER -->
             <div class="total-bet-all">Tổng Xỉu: <span id="total-xiu-all" style="color:#3498db">0</span></div>
             <button id="btn-xiu" class="btn btn-xiu" onclick="gamePlay('Xỉu')">XỈU</button>
             <div class="bet-label">Đã cược: <span id="bet-xiu-val">0</span></div>
         </div>
         <div class="bet-column">
-            <!-- HIỂN THỊ TỔNG CƯỢC TOÀN SERVER -->
             <div class="total-bet-all">Tổng Tài: <span id="total-tai-all" style="color:#e74c3c">0</span></div>
             <button id="btn-tai" class="btn btn-tai" onclick="gamePlay('Tài')">TÀI</button>
             <div class="bet-label">Đã cược: <span id="bet-tai-val">0</span></div>
@@ -65,11 +74,6 @@
     </div>
 
     <button class="logout-btn" onclick="logout()">🚪 ĐĂNG XUẤT</button>
-
-    <div class="rut-gem-note">
-        ⚠️ <b>LƯU Ý RÚT GEM:</b> Đợi <i>emthaibaby8</i> online để join. Nếu đã online thì vào nhấn <b>TRADE</b>. 
-        <br>Ghi nội dung: <b>Tentk + Số Gem rút!!</b>
-    </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -89,7 +93,8 @@
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     const sessionRef = database.ref('gameSession');
-    const totalBetRef = database.ref('gameSession/totalBets'); // Đường dẫn lưu tổng cược
+    const totalBetRef = database.ref('gameSession/totalBets');
+    const historyRef = database.ref('gameHistory'); // Nhánh lịch sử
 
     const playerName = localStorage.getItem("userRoblox");
     if (!playerName) window.location.href = "index.html";
@@ -101,6 +106,7 @@
     let canBet = false;
     let hasResetThisSession = false;
 
+    // Lấy số dư tài khoản
     const userRef = database.ref('users/' + playerName);
     userRef.on('value', (snapshot) => {
         const data = snapshot.val();
@@ -110,13 +116,31 @@
         }
     });
 
-    // LẮNG NGHE TỔNG CƯỢC TOÀN SERVER
+    // Cập nhật tổng cược toàn server
     totalBetRef.on('value', (snapshot) => {
         const data = snapshot.val();
         document.getElementById("total-xiu-all").innerText = (data?.xiu || 0).toLocaleString();
         document.getElementById("total-tai-all").innerText = (data?.tai || 0).toLocaleString();
     });
 
+    // Lắng nghe lịch sử phiên (Soi cầu)
+    historyRef.on('value', (snapshot) => {
+        const historyData = snapshot.val();
+        const historyBox = document.getElementById("history-dots");
+        historyBox.innerHTML = ""; 
+
+        if (historyData) {
+            // Hiển thị tối đa 15 chấm gần nhất
+            const records = Object.values(historyData);
+            records.forEach(item => {
+                const dot = document.createElement("div");
+                dot.className = `dot ${item.r === 'Tai' ? 'dot-tai' : 'dot-xiu'}`;
+                historyBox.appendChild(dot);
+            });
+        }
+    });
+
+    // Lắng nghe phiên game
     sessionRef.on('value', (snapshot) => {
         const session = snapshot.val();
         if (!session) return;
@@ -130,22 +154,18 @@
             statusMsg.innerHTML = `⏳ Thời gian cược: <span style="color:#f1c40f">${session.timeLeft}s</span>`;
             
             if (session.timeLeft > 50 && !hasResetThisSession) { 
-                betXiu = 0;
-                betTai = 0;
+                betXiu = 0; betTai = 0;
                 document.getElementById("bet-xiu-val").innerText = "0";
                 document.getElementById("bet-tai-val").innerText = "0";
                 diceDisplay.innerText = "🎲 🎲 🎲";
                 hasResetThisSession = true;
-                
-                // Reset luôn hiển thị tổng cược về 0 ở đầu phiên
                 document.getElementById("total-xiu-all").innerText = "0";
                 document.getElementById("total-tai-all").innerText = "0";
             }
 
             if (session.timeLeft <= 10) {
                 statusMsg.innerHTML = `<span style="color:#e74c3c">🚫 HẾT THỜI GIAN CƯỢC</span>`;
-                btnXiu.disabled = true;
-                btnTai.disabled = true;
+                btnXiu.disabled = true; btnTai.disabled = true;
                 canBet = false;
             } else {
                 btnXiu.disabled = (betTai > 0);
@@ -155,9 +175,7 @@
         } 
         
         if (session.status === "result") {
-            canBet = false;
-            btnXiu.disabled = true;
-            btnTai.disabled = true;
+            canBet = false; btnXiu.disabled = true; btnTai.disabled = true;
             hasResetThisSession = false;
             
             const total = session.dice[0] + session.dice[1] + session.dice[2];
@@ -190,19 +208,16 @@
             return;
         }
 
-        // 1. Trừ tiền cá nhân
         userRef.update({ gems: currentGems - val }).then(() => {
             if (choice === 'Xỉu') {
                 betXiu += val;
                 document.getElementById("bet-xiu-val").innerText = betXiu.toLocaleString();
                 document.getElementById("btn-tai").disabled = true;
-                // 2. Cộng dồn vào tổng server (dùng transaction để tránh lỗi khi nhiều người cược cùng lúc)
                 totalBetRef.child('xiu').transaction((current) => (current || 0) + val);
             } else {
                 betTai += val;
                 document.getElementById("bet-tai-val").innerText = betTai.toLocaleString();
                 document.getElementById("btn-xiu").disabled = true;
-                // 2. Cộng dồn vào tổng server
                 totalBetRef.child('tai').transaction((current) => (current || 0) + val);
             }
             document.getElementById("bet-val").value = "";
