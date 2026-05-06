@@ -163,7 +163,7 @@
 
                 if (myBetAmount > 0 && myChoice !== "") {
                     if (myChoice === resultType) {
-                        const winAmount = myBetAmount * 2;
+                        const winAmount = myBetAmount * 1.9;
                         userRef.child('gems').transaction(current => (current || 0) + winAmount);
                         msg.innerHTML = `<span style="color:#2ecc71">THẮNG: +${winAmount.toLocaleString()} 💎</span>`;
                     } else {
