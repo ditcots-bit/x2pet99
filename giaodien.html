@@ -19,30 +19,8 @@
         .header-info { display: flex; justify-content: space-between; align-items: center; background: #2d2d2d; padding: 15px; border-radius: 15px; margin-bottom: 20px; }
         .user-tag { color: #2ecc71; font-weight: bold; font-size: 14px; }
         .gem-balance { color: #f1c40f; font-size: 20px; font-weight: bold; }
-        
-        /* Style mới cho nút Nạp/Rút Gem hoạt động như một button */
-        .nap-gem-note { 
-            background: linear-gradient(45deg, #f39c12, #e67e22); 
-            color: #000; 
-            padding: 14px; 
-            border-radius: 12px; 
-            font-weight: 900; 
-            margin-bottom: 20px; 
-            font-size: 13px; 
-            box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); 
-            text-transform: uppercase; 
-            text-align: center;
-            display: block;
-            text-decoration: none;
-            transition: 0.3s;
-            box-sizing: border-box;
-        }
-        .nap-gem-note:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(230, 126, 34, 0.6);
-            filter: brightness(1.1);
-        }
-
+        .nap-gem-note { background: linear-gradient(45deg, #f39c12, #e67e22); color: #000; padding: 14px; border-radius: 12px; font-weight: 900; margin-bottom: 20px; font-size: 13px; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); text-transform: uppercase; text-align: center; display: block; text-decoration: none; transition: 0.3s; box-sizing: border-box; }
+        .nap-gem-note:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(230, 126, 34, 0.6); filter: brightness(1.1); }
         .dice-display { background: #121212; padding: 30px; border-radius: 20px 20px 0 0; font-size: 60px; border: 2px solid #333; border-bottom: none; display: flex; justify-content: center; gap: 10px; }
         .history-container { background: #121212; padding: 10px; border-radius: 0 0 20px 20px; margin-bottom: 20px; display: flex; justify-content: center; gap: 8px; border: 2px solid #333; border-top: 1px solid #444; flex-wrap: wrap; }
         .dot { width: 14px; height: 14px; border-radius: 50%; }
@@ -58,11 +36,8 @@
         .btn-subtext { font-size: 11px; display: block; opacity: 0.8; }
         .total-bet-all { font-size: 11px; margin-bottom: 5px; }
         .bet-label { background: #000; padding: 5px; border-radius: 8px; font-size: 13px; color: #f1c40f; margin-top: 5px; }
-        
-        /* Style cho nút Discord */
         .discord-btn { margin-top: 20px; background: #5865F2; color: white; padding: 12px; border-radius: 10px; width: 100%; cursor: pointer; font-weight: bold; border: none; transition: 0.3s; display: block; text-decoration: none; box-sizing: border-box; text-align: center; font-size: 16px; }
         .discord-btn:hover { background: #4752c4; transform: translateY(-2px); }
-
         .logout-btn { margin-top: 10px; background: none; border: 1px solid #e74c3c; color: #e74c3c; padding: 8px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; }
         #status-msg { text-align: center; font-weight: bold; }
     </style>
@@ -97,7 +72,6 @@
         </div>
 
         <a href="https://discord.gg/wDRd5VtyJ" target="_blank" class="discord-btn">📱 NHÓM DISCORD</a>
-        
         <button class="logout-btn" onclick="logout()">🚪 ĐĂNG XUẤT</button>
     </div>
 
@@ -132,8 +106,10 @@
     const playerName = localStorage.getItem("userRoblox") || "Khách";
     document.getElementById("player-name").innerText = playerName;
 
-    let currentGems = 0, betXiu = 0, betTai = 0, canBet = false, hasReset = true;
+    // isProcessing: chặn spam click nhanh
+    let currentGems = 0, betXiu = 0, betTai = 0, canBet = false, hasReset = true, isProcessing = false;
     const userRef = database.ref('users/' + playerName);
+    const userBetLockRef = database.ref('gameSession/userBetLocks/' + playerName);
     
     userRef.on('value', snap => {
         currentGems = snap.val()?.gems || 0;
@@ -156,6 +132,18 @@
         });
     });
 
+    // Lắng nghe khóa cược từ server để đồng bộ giữa các tab
+    userBetLockRef.on('value', snap => {
+        const lock = snap.val();
+        if (lock) {
+            if (lock === 'Xỉu') { betXiu = 1; betTai = 0; }
+            if (lock === 'Tài') { betTai = 1; betXiu = 0; }
+        } else {
+            betXiu = 0; betTai = 0;
+        }
+        updateButtonState();
+    });
+
     sessionRef.on('value', snap => {
         const s = snap.val(); if (!s) return;
         const msg = document.getElementById("status-msg"), dice = document.getElementById("dice-result");
@@ -172,10 +160,11 @@
             }
 
             if (s.timeLeft >= 59 && !hasReset) {
-                betXiu = 0; betTai = 0; hasReset = true;
+                userBetLockRef.remove(); // Reset khóa trên server cho phiên mới
                 document.getElementById("bet-xiu-val").innerText = "0";
                 document.getElementById("bet-tai-val").innerText = "0";
                 dice.innerText = "🎲 🎲 🎲";
+                hasReset = true;
                 updateButtonState();
             }
         }
@@ -189,8 +178,12 @@
             dice.innerText = s.dice.join(" ");
             
             if (hasReset) {
-                let myBetAmount = (betXiu > 0) ? betXiu : (betTai > 0 ? betTai : 0);
-                let myChoice = (betXiu > 0) ? "Xỉu" : (betTai > 0 ? "Tài" : "");
+                // Lấy giá trị cược thực tế từ UI để trả thưởng
+                let realXiu = parseInt(document.getElementById("bet-xiu-val").innerText.replace(/,/g, ''));
+                let realTai = parseInt(document.getElementById("bet-tai-val").innerText.replace(/,/g, ''));
+                
+                let myBetAmount = (realXiu > 0) ? realXiu : (realTai > 0 ? realTai : 0);
+                let myChoice = (realXiu > 0) ? "Xỉu" : (realTai > 0 ? "Tài" : "");
 
                 if (myBetAmount > 0 && myChoice !== "") {
                     if (myChoice === resultType) {
@@ -204,7 +197,6 @@
                     msg.innerHTML = `Kết quả: <b style="color:#f1c40f">${resultType}</b> (${total})`;
                 }
                 hasReset = false;
-                betXiu = 0; betTai = 0;
             }
         }
     });
@@ -220,39 +212,54 @@
         else { btnX.disabled = false; btnT.disabled = false; }
     }
 
-    function gamePlay(choice) {
-        if (!canBet) return;
+    async function gamePlay(choice) {
+        if (!canBet || isProcessing) return;
+        
         let val = parseInt(document.getElementById("bet-val").value);
-        
-        if (!val || val < 10) {
-            alert("Mức cược tối thiểu là 10 💎!");
-            return;
-        }
-        
-        if (val > currentGems) {
-            alert("Bạn không đủ Gem!");
-            return;
-        }
+        if (!val || val < 10) { alert("Mức cược tối thiểu là 10 💎!"); return; }
+        if (val > currentGems) { alert("Bạn không đủ Gem!"); return; }
 
-        userRef.child('gems').transaction(current => {
-            if (current >= val) return current - val;
-            return;
-        }, (error, committed) => {
-            if (committed) {
-                if (choice === 'Xỉu') {
-                    betXiu += val;
-                    document.getElementById("bet-xiu-val").innerText = betXiu.toLocaleString();
-                } else {
-                    betTai += val;
-                    document.getElementById("bet-tai-val").innerText = betTai.toLocaleString();
-                }
-                totalBetRef.child(choice === 'Xỉu' ? 'xiu' : 'tai').transaction(c => (c || 0) + val);
-                document.getElementById("bet-val").value = "";
-                updateButtonState();
-            } else {
-                alert("Giao dịch thất bại!");
+        isProcessing = true; // Bắt đầu xử lý, khóa nút tạm thời
+
+        try {
+            // Kiểm tra khóa từ Server (Chống 2 Tab)
+            const snap = await userBetLockRef.once('value');
+            const currentLock = snap.val();
+
+            if (currentLock && currentLock !== choice) {
+                alert("Bạn đã đặt " + currentLock + " ở tab khác rồi!");
+                isProcessing = false;
+                return;
             }
-        });
+
+            // Thực hiện trừ tiền
+            userRef.child('gems').transaction(current => {
+                if (current >= val) return current - val;
+                return;
+            }, (error, committed) => {
+                if (committed) {
+                    // Ghi đè khóa lên server
+                    userBetLockRef.set(choice);
+                    
+                    if (choice === 'Xỉu') {
+                        let cur = parseInt(document.getElementById("bet-xiu-val").innerText.replace(/,/g, '')) || 0;
+                        document.getElementById("bet-xiu-val").innerText = (cur + val).toLocaleString();
+                    } else {
+                        let cur = parseInt(document.getElementById("bet-tai-val").innerText.replace(/,/g, '')) || 0;
+                        document.getElementById("bet-tai-val").innerText = (cur + val).toLocaleString();
+                    }
+                    
+                    totalBetRef.child(choice === 'Xỉu' ? 'xiu' : 'tai').transaction(c => (c || 0) + val);
+                    document.getElementById("bet-val").value = "";
+                } else {
+                    alert("Giao dịch thất bại!");
+                }
+                isProcessing = false; // Mở khóa sau khi xong
+                updateButtonState();
+            });
+        } catch (e) {
+            isProcessing = false;
+        }
     }
 
     function sendMessage() {
