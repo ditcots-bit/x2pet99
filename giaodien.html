@@ -133,12 +133,10 @@
 
     userBetLockRef.on('value', snap => {
         const lock = snap.val();
-        // Cập nhật lại biến cược khi server thay đổi (đồng bộ tab)
-        if (lock) {
-            if (lock === 'Xỉu') { betXiu = 1; betTai = 0; }
-            else { betTai = 1; betXiu = 0; }
-        } else {
+        if (!lock) {
             betXiu = 0; betTai = 0;
+            document.getElementById("bet-xiu-val").innerText = "0";
+            document.getElementById("bet-tai-val").innerText = "0";
         }
         updateButtonState();
     });
@@ -155,11 +153,10 @@
                 updateButtonState();
             }
 
-            if (s.timeLeft >= 59 && !hasReset) {
+            // Chuẩn bị cho ván mới
+            if (s.timeLeft >= 58 && !hasReset) {
                 userBetLockRef.remove();
-                document.getElementById("bet-xiu-val").innerText = "0";
-                document.getElementById("bet-tai-val").innerText = "0";
-                betXiu = 0; betTai = 0; // Reset biến local
+                betXiu = 0; betTai = 0;
                 dice.innerText = "🎲 🎲 🎲";
                 hasReset = true;
                 updateButtonState();
@@ -172,21 +169,18 @@
             
             const total = s.dice[0] + s.dice[1] + s.dice[2];
             let resultType = (total >= 11) ? "Tài" : "Xỉu";
-            dice.innerText = s.dice.join(" ");
+            dice.innerText = s.dice.join("  ");
             
             if (hasReset) {
-                // Đọc tiền cược thực tế từ UI để tính thưởng chính xác nhất
-                let realXiu = parseInt(document.getElementById("bet-xiu-val").innerText.replace(/,/g, '')) || 0;
-                let realTai = parseInt(document.getElementById("bet-tai-val").innerText.replace(/,/g, '')) || 0;
-                
-                let myBetAmount = (realXiu > 0) ? realXiu : realTai;
-                let myChoice = (realXiu > 0) ? "Xỉu" : (realTai > 0 ? "Tài" : "");
+                // Sử dụng biến logic local thay vì đọc từ giao diện
+                let myBetAmount = (betXiu > 0) ? betXiu : (betTai > 0 ? betTai : 0);
+                let myChoice = (betXiu > 0) ? "Xỉu" : (betTai > 0 ? "Tài" : "");
 
                 if (myBetAmount > 0 && myChoice !== "") {
                     if (myChoice === resultType) {
-                        const winAmount = Math.floor(myBetAmount * 1.95); // Thưởng x1.95
+                        const winAmount = Math.floor(myBetAmount * 1.95);
                         userRef.child('gems').transaction(current => (current || 0) + winAmount);
-                        msg.innerHTML = `<span style="color:#2ecc71">THẮNG: +${winAmount.toLocaleString()} 💎</span>`;
+                        msg.innerHTML = `<span style="color:#2ecc71; font-size:18px">🔥 THẮNG: +${winAmount.toLocaleString()} 💎</span>`;
                     } else {
                         msg.innerHTML = `<span style="color:#e74c3c">KẾT QUẢ: ${resultType} (THUA)</span>`;
                     }
@@ -202,12 +196,8 @@
         const btnX = document.getElementById("btn-xiu"), btnT = document.getElementById("btn-tai");
         if (!canBet) { btnX.disabled = true; btnT.disabled = true; return; }
         
-        // Đọc giá trị thực tế từ UI để khóa nút chính xác
-        let realXiu = parseInt(document.getElementById("bet-xiu-val").innerText.replace(/,/g, '')) || 0;
-        let realTai = parseInt(document.getElementById("bet-tai-val").innerText.replace(/,/g, '')) || 0;
-
-        if (realXiu > 0) { btnX.disabled = false; btnT.disabled = true; }
-        else if (realTai > 0) { btnX.disabled = true; btnT.disabled = false; }
+        if (betXiu > 0) { btnX.disabled = false; btnT.disabled = true; }
+        else if (betTai > 0) { btnX.disabled = true; btnT.disabled = false; }
         else { btnX.disabled = false; btnT.disabled = false; }
     }
 
@@ -238,13 +228,11 @@
                     userBetLockRef.set(choice);
                     
                     if (choice === 'Xỉu') {
-                        let cur = parseInt(document.getElementById("bet-xiu-val").innerText.replace(/,/g, '')) || 0;
-                        document.getElementById("bet-xiu-val").innerText = (cur + val).toLocaleString();
-                        betXiu = cur + val;
+                        betXiu += val;
+                        document.getElementById("bet-xiu-val").innerText = betXiu.toLocaleString();
                     } else {
-                        let cur = parseInt(document.getElementById("bet-tai-val").innerText.replace(/,/g, '')) || 0;
-                        document.getElementById("bet-tai-val").innerText = (cur + val).toLocaleString();
-                        betTai = cur + val;
+                        betTai += val;
+                        document.getElementById("bet-tai-val").innerText = betTai.toLocaleString();
                     }
                     
                     totalBetRef.child(choice === 'Xỉu' ? 'xiu' : 'tai').transaction(c => (c || 0) + val);
