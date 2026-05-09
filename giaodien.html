@@ -51,7 +51,7 @@
             <div class="gem-balance"><span id="balance">0</span> 💎</div>
         </div>
         
-        <a href="https://www.roblox.com/users/5741873127/profile?friendshipSourceType=PlayerSearch" target="_blank" class="nap-gem-note">✨ ẤN VÀO ĐÂY ĐỂ NẠP/RÚT GEM JOIN EMTHAIBABY8 ✨</a>
+        <a href="https://www.roblox.com/users/5741873127/profile" target="_blank" class="nap-gem-note">✨ ẤN VÀO ĐÂY ĐỂ NẠP/RÚT GEM ✨</a>
         
         <input type="number" id="bet-val" class="bet-input" placeholder="Nhập số Gem cược (Min 10)...">
         <div class="dice-display" id="dice-result">🎲 🎲 🎲</div>
@@ -106,7 +106,6 @@
     const playerName = localStorage.getItem("userRoblox") || "Khách";
     document.getElementById("player-name").innerText = playerName;
 
-    // isProcessing: chặn spam click nhanh
     let currentGems = 0, betXiu = 0, betTai = 0, canBet = false, hasReset = true, isProcessing = false;
     const userRef = database.ref('users/' + playerName);
     const userBetLockRef = database.ref('gameSession/userBetLocks/' + playerName);
@@ -132,12 +131,12 @@
         });
     });
 
-    // Lắng nghe khóa cược từ server để đồng bộ giữa các tab
     userBetLockRef.on('value', snap => {
         const lock = snap.val();
+        // Cập nhật lại biến cược khi server thay đổi (đồng bộ tab)
         if (lock) {
             if (lock === 'Xỉu') { betXiu = 1; betTai = 0; }
-            if (lock === 'Tài') { betTai = 1; betXiu = 0; }
+            else { betTai = 1; betXiu = 0; }
         } else {
             betXiu = 0; betTai = 0;
         }
@@ -147,22 +146,20 @@
     sessionRef.on('value', snap => {
         const s = snap.val(); if (!s) return;
         const msg = document.getElementById("status-msg"), dice = document.getElementById("dice-result");
-        const btnX = document.getElementById("btn-xiu"), btnT = document.getElementById("btn-tai");
 
         if (s.status === "betting") {
             if (s.timeLeft > 0) {
                 msg.innerHTML = `⏳ Thời gian: <span style="color:#f1c40f">${s.timeLeft}s</span>`;
                 canBet = s.timeLeft > 10;
-                if (!canBet) {
-                    msg.innerHTML = `<span style="color:#e74c3c">🚫 HẾT GIỜ ĐẶT</span>`;
-                }
+                if (!canBet) msg.innerHTML = `<span style="color:#e74c3c">🚫 HẾT GIỜ ĐẶT</span>`;
                 updateButtonState();
             }
 
             if (s.timeLeft >= 59 && !hasReset) {
-                userBetLockRef.remove(); // Reset khóa trên server cho phiên mới
+                userBetLockRef.remove();
                 document.getElementById("bet-xiu-val").innerText = "0";
                 document.getElementById("bet-tai-val").innerText = "0";
+                betXiu = 0; betTai = 0; // Reset biến local
                 dice.innerText = "🎲 🎲 🎲";
                 hasReset = true;
                 updateButtonState();
@@ -171,23 +168,23 @@
         
         if (s.status === "result") {
             canBet = false;
-            btnX.disabled = true; btnT.disabled = true;
+            updateButtonState();
             
             const total = s.dice[0] + s.dice[1] + s.dice[2];
             let resultType = (total >= 11) ? "Tài" : "Xỉu";
             dice.innerText = s.dice.join(" ");
             
             if (hasReset) {
-                // Lấy giá trị cược thực tế từ UI để trả thưởng
-                let realXiu = parseInt(document.getElementById("bet-xiu-val").innerText.replace(/,/g, ''));
-                let realTai = parseInt(document.getElementById("bet-tai-val").innerText.replace(/,/g, ''));
+                // Đọc tiền cược thực tế từ UI để tính thưởng chính xác nhất
+                let realXiu = parseInt(document.getElementById("bet-xiu-val").innerText.replace(/,/g, '')) || 0;
+                let realTai = parseInt(document.getElementById("bet-tai-val").innerText.replace(/,/g, '')) || 0;
                 
-                let myBetAmount = (realXiu > 0) ? realXiu : (realTai > 0 ? realTai : 0);
+                let myBetAmount = (realXiu > 0) ? realXiu : realTai;
                 let myChoice = (realXiu > 0) ? "Xỉu" : (realTai > 0 ? "Tài" : "");
 
                 if (myBetAmount > 0 && myChoice !== "") {
                     if (myChoice === resultType) {
-                        const winAmount = Math.floor(myBetAmount * 1.9);
+                        const winAmount = Math.floor(myBetAmount * 1.95); // Thưởng x1.95
                         userRef.child('gems').transaction(current => (current || 0) + winAmount);
                         msg.innerHTML = `<span style="color:#2ecc71">THẮNG: +${winAmount.toLocaleString()} 💎</span>`;
                     } else {
@@ -203,12 +200,14 @@
 
     function updateButtonState() {
         const btnX = document.getElementById("btn-xiu"), btnT = document.getElementById("btn-tai");
-        if (!canBet) {
-            btnX.disabled = true; btnT.disabled = true;
-            return;
-        }
-        if (betXiu > 0) { btnX.disabled = false; btnT.disabled = true; }
-        else if (betTai > 0) { btnX.disabled = true; btnT.disabled = false; }
+        if (!canBet) { btnX.disabled = true; btnT.disabled = true; return; }
+        
+        // Đọc giá trị thực tế từ UI để khóa nút chính xác
+        let realXiu = parseInt(document.getElementById("bet-xiu-val").innerText.replace(/,/g, '')) || 0;
+        let realTai = parseInt(document.getElementById("bet-tai-val").innerText.replace(/,/g, '')) || 0;
+
+        if (realXiu > 0) { btnX.disabled = false; btnT.disabled = true; }
+        else if (realTai > 0) { btnX.disabled = true; btnT.disabled = false; }
         else { btnX.disabled = false; btnT.disabled = false; }
     }
 
@@ -219,34 +218,33 @@
         if (!val || val < 10) { alert("Mức cược tối thiểu là 10 💎!"); return; }
         if (val > currentGems) { alert("Bạn không đủ Gem!"); return; }
 
-        isProcessing = true; // Bắt đầu xử lý, khóa nút tạm thời
+        isProcessing = true;
 
         try {
-            // Kiểm tra khóa từ Server (Chống 2 Tab)
             const snap = await userBetLockRef.once('value');
             const currentLock = snap.val();
 
             if (currentLock && currentLock !== choice) {
-                alert("Bạn đã đặt " + currentLock + " ở tab khác rồi!");
+                alert("Bạn đã đặt " + currentLock + " rồi!");
                 isProcessing = false;
                 return;
             }
 
-            // Thực hiện trừ tiền
             userRef.child('gems').transaction(current => {
                 if (current >= val) return current - val;
                 return;
             }, (error, committed) => {
                 if (committed) {
-                    // Ghi đè khóa lên server
                     userBetLockRef.set(choice);
                     
                     if (choice === 'Xỉu') {
                         let cur = parseInt(document.getElementById("bet-xiu-val").innerText.replace(/,/g, '')) || 0;
                         document.getElementById("bet-xiu-val").innerText = (cur + val).toLocaleString();
+                        betXiu = cur + val;
                     } else {
                         let cur = parseInt(document.getElementById("bet-tai-val").innerText.replace(/,/g, '')) || 0;
                         document.getElementById("bet-tai-val").innerText = (cur + val).toLocaleString();
+                        betTai = cur + val;
                     }
                     
                     totalBetRef.child(choice === 'Xỉu' ? 'xiu' : 'tai').transaction(c => (c || 0) + val);
@@ -254,7 +252,7 @@
                 } else {
                     alert("Giao dịch thất bại!");
                 }
-                isProcessing = false; // Mở khóa sau khi xong
+                isProcessing = false;
                 updateButtonState();
             });
         } catch (e) {
