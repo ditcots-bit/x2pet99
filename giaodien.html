@@ -103,12 +103,10 @@
     const historyRef = database.ref('gameHistory');
     const chatRef = database.ref('publicChat');
 
-    // Tự động tạo ID khách ngẫu nhiên để tránh trùng lặp nếu chưa đăng nhập
-    const guestId = Math.floor(Math.random() * 8999) + 1000;
-    const playerName = localStorage.getItem("userRoblox") || ("Khách_" + guestId);
+    const playerName = localStorage.getItem("userRoblox") || ("Khách_" + (Math.floor(Math.random() * 8999) + 1000));
     document.getElementById("player-name").innerText = playerName;
 
-    let currentGems = 0, betXiu = 0, betTai = 0, canBet = false, hasReset = true, isProcessing = false;
+    let currentGems = 0, betXiu = 0, betTai = 0, canBet = false, isProcessing = false, hasRewarded = false;
     const userRef = database.ref('users/' + playerName);
     const userBetLockRef = database.ref('gameSession/userBetLocks/' + playerName);
     
@@ -134,8 +132,7 @@
     });
 
     userBetLockRef.on('value', snap => {
-        const lock = snap.val();
-        if (!lock) {
+        if (!snap.exists()) {
             betXiu = 0; betTai = 0;
             document.getElementById("bet-xiu-val").innerText = "0";
             document.getElementById("bet-tai-val").innerText = "0";
@@ -143,60 +140,57 @@
         updateButtonState();
     });
 
-    sessionRef.on('value', snap => {
+    sessionRef.on('value', async snap => {
         const s = snap.val(); if (!s) return;
         const msg = document.getElementById("status-msg"), dice = document.getElementById("dice-result");
 
         if (s.status === "betting") {
+            hasRewarded = false; 
+            dice.innerText = "🎲 🎲 🎲";
             if (s.timeLeft > 0) {
                 msg.innerHTML = `⏳ Thời gian: <span style="color:#f1c40f">${s.timeLeft}s</span>`;
-                canBet = s.timeLeft > 10;
+                canBet = s.timeLeft > 5;
                 if (!canBet) msg.innerHTML = `<span style="color:#e74c3c">🚫 HẾT GIỜ ĐẶT</span>`;
-                updateButtonState();
-            }
-
-            // Reset phiên cược mới
-            if (s.timeLeft >= 58 && !hasReset) {
-                userBetLockRef.remove();
-                betXiu = 0; betTai = 0;
-                dice.innerText = "🎲 🎲 🎲";
-                hasReset = true;
-                updateButtonState();
             }
         }
         
         if (s.status === "result") {
             canBet = false;
-            updateButtonState();
-            
             const total = s.dice[0] + s.dice[1] + s.dice[2];
             let resultType = (total >= 11) ? "Tài" : "Xỉu";
             dice.innerText = s.dice.join("  ");
             
-            if (hasReset) {
+            if (!hasRewarded) {
+                hasRewarded = true; 
                 let myBetAmount = (betXiu > 0) ? betXiu : (betTai > 0 ? betTai : 0);
                 let myChoice = (betXiu > 0) ? "Xỉu" : (betTai > 0 ? "Tài" : "");
 
-                if (myBetAmount > 0 && myChoice !== "") {
-                    if (myChoice === resultType) {
-                        const winAmount = Math.floor(myBetAmount * 1.95);
-                        userRef.child('gems').transaction(current => (current || 0) + winAmount);
+                if (myBetAmount > 0 && myChoice === resultType) {
+                    const winAmount = Math.floor(myBetAmount * 1.95);
+                    try {
+                        // FIX CỨNG: Lấy số dư mới nhất rồi ghi đè lên để tránh nghẽn transaction
+                        const currentSnap = await userRef.child('gems').once('value');
+                        const latestGems = currentSnap.val() || 0;
+                        await userRef.child('gems').set(latestGems + winAmount);
+                        
                         msg.innerHTML = `<span style="color:#2ecc71; font-size:18px">🔥 THẮNG: +${winAmount.toLocaleString()} 💎</span>`;
-                    } else {
-                        msg.innerHTML = `<span style="color:#e74c3c">KẾT QUẢ: ${resultType} (THUA)</span>`;
+                    } catch (e) {
+                        msg.innerHTML = `<span style="color:#ff4757">LỖI CỘNG TIỀN!</span>`;
                     }
+                } else if (myBetAmount > 0) {
+                    msg.innerHTML = `<span style="color:#e74c3c">KẾT QUẢ: ${resultType} (THUA)</span>`;
                 } else {
                     msg.innerHTML = `Kết quả: <b style="color:#f1c40f">${resultType}</b> (${total})`;
                 }
-                hasReset = false;
+                betXiu = 0; betTai = 0;
             }
         }
+        updateButtonState();
     });
 
     function updateButtonState() {
         const btnX = document.getElementById("btn-xiu"), btnT = document.getElementById("btn-tai");
         if (!canBet) { btnX.disabled = true; btnT.disabled = true; return; }
-        
         if (betXiu > 0) { btnX.disabled = false; btnT.disabled = true; }
         else if (betTai > 0) { btnX.disabled = true; btnT.disabled = false; }
         else { btnX.disabled = false; btnT.disabled = false; }
@@ -204,22 +198,16 @@
 
     async function gamePlay(choice) {
         if (!canBet || isProcessing) return;
-        
         let val = parseInt(document.getElementById("bet-val").value);
         if (!val || val < 10) { alert("Mức cược tối thiểu là 10 💎!"); return; }
         if (val > currentGems) { alert("Bạn không đủ Gem!"); return; }
 
         isProcessing = true;
-
         try {
-            const snap = await userBetLockRef.once('value');
-            const currentLock = snap.val();
-
-            // Kiểm tra xem chính người chơi này đã đặt cửa khác chưa
-            if (currentLock && currentLock !== choice) {
-                alert("Bạn đã đặt " + currentLock + " rồi, không thể đặt cửa ngược lại!");
-                isProcessing = false;
-                return;
+            const lockSnap = await userBetLockRef.once('value');
+            if (lockSnap.exists() && lockSnap.val() !== choice) {
+                alert("Bạn đã đặt " + lockSnap.val() + " rồi!");
+                isProcessing = false; return;
             }
 
             userRef.child('gems').transaction(current => {
@@ -228,7 +216,6 @@
             }, (error, committed) => {
                 if (committed) {
                     userBetLockRef.set(choice);
-                    
                     if (choice === 'Xỉu') {
                         betXiu += val;
                         document.getElementById("bet-xiu-val").innerText = betXiu.toLocaleString();
@@ -236,18 +223,15 @@
                         betTai += val;
                         document.getElementById("bet-tai-val").innerText = betTai.toLocaleString();
                     }
-                    
                     totalBetRef.child(choice === 'Xỉu' ? 'xiu' : 'tai').transaction(c => (c || 0) + val);
                     document.getElementById("bet-val").value = "";
                 } else {
-                    alert("Giao dịch thất bại! Có thể số dư của bạn đã thay đổi.");
+                    alert("Giao dịch thất bại!");
                 }
                 isProcessing = false;
                 updateButtonState();
             });
-        } catch (e) {
-            isProcessing = false;
-        }
+        } catch (e) { isProcessing = false; }
     }
 
     function sendMessage() {
@@ -268,10 +252,7 @@
         content.scrollTop = content.scrollHeight;
     });
 
-    function logout() { 
-        localStorage.removeItem("userRoblox"); 
-        window.location.href="index.html"; 
-    }
+    function logout() { localStorage.removeItem("userRoblox"); window.location.href="index.html"; }
 </script>
 </body>
 </html>
