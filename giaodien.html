@@ -103,7 +103,9 @@
     const historyRef = database.ref('gameHistory');
     const chatRef = database.ref('publicChat');
 
-    const playerName = localStorage.getItem("userRoblox") || "Khách";
+    // Tự động tạo ID khách ngẫu nhiên để tránh trùng lặp nếu chưa đăng nhập
+    const guestId = Math.floor(Math.random() * 8999) + 1000;
+    const playerName = localStorage.getItem("userRoblox") || ("Khách_" + guestId);
     document.getElementById("player-name").innerText = playerName;
 
     let currentGems = 0, betXiu = 0, betTai = 0, canBet = false, hasReset = true, isProcessing = false;
@@ -153,7 +155,7 @@
                 updateButtonState();
             }
 
-            // Chuẩn bị cho ván mới
+            // Reset phiên cược mới
             if (s.timeLeft >= 58 && !hasReset) {
                 userBetLockRef.remove();
                 betXiu = 0; betTai = 0;
@@ -172,7 +174,6 @@
             dice.innerText = s.dice.join("  ");
             
             if (hasReset) {
-                // Sử dụng biến logic local thay vì đọc từ giao diện
                 let myBetAmount = (betXiu > 0) ? betXiu : (betTai > 0 ? betTai : 0);
                 let myChoice = (betXiu > 0) ? "Xỉu" : (betTai > 0 ? "Tài" : "");
 
@@ -214,8 +215,9 @@
             const snap = await userBetLockRef.once('value');
             const currentLock = snap.val();
 
+            // Kiểm tra xem chính người chơi này đã đặt cửa khác chưa
             if (currentLock && currentLock !== choice) {
-                alert("Bạn đã đặt " + currentLock + " rồi!");
+                alert("Bạn đã đặt " + currentLock + " rồi, không thể đặt cửa ngược lại!");
                 isProcessing = false;
                 return;
             }
@@ -238,7 +240,7 @@
                     totalBetRef.child(choice === 'Xỉu' ? 'xiu' : 'tai').transaction(c => (c || 0) + val);
                     document.getElementById("bet-val").value = "";
                 } else {
-                    alert("Giao dịch thất bại!");
+                    alert("Giao dịch thất bại! Có thể số dư của bạn đã thay đổi.");
                 }
                 isProcessing = false;
                 updateButtonState();
@@ -266,7 +268,10 @@
         content.scrollTop = content.scrollHeight;
     });
 
-    function logout() { localStorage.removeItem("userRoblox"); window.location.href="index.html"; }
+    function logout() { 
+        localStorage.removeItem("userRoblox"); 
+        window.location.href="index.html"; 
+    }
 </script>
 </body>
 </html>
