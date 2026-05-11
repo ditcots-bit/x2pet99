@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đào Đá Quý - Pet99</title>
     <style>
-        /* FIX: Thay background ảnh bằng Gradient chuyển động */
+        /* Background Gradient chuyển động mượt mà */
         body { 
             font-family: 'Segoe UI', sans-serif; 
             background: linear-gradient(-45deg, #050a0f, #0a1a2b, #001f3f, #050a0f);
@@ -189,11 +189,16 @@
 
             await userRef.child('gems').set(currentGems - betAmount);
             
+            // Cập nhật logic tỉ lệ nổ theo yêu cầu của ThinhDZ
             let randomMax;
-            if (Math.random() < 0.85) {
-                randomMax = Math.floor(Math.random() * 13) + 1;
-            } else {
-                randomMax = Math.floor(Math.random() * (55 - 14 + 1)) + 14;
+            let rate = Math.random(); // Lấy số ngẫu nhiên từ 0 đến 1
+            
+            if (rate < 0.80) { 
+                // 80% trường hợp nổ từ click 1 đến 20
+                randomMax = Math.floor(Math.random() * 20) + 1;
+            } else { 
+                // 20% trường hợp nổ từ click 21 đến 55
+                randomMax = Math.floor(Math.random() * (55 - 21 + 1)) + 21;
             }
 
             await mineRef.set({
@@ -214,6 +219,7 @@
         const adminData = snap.val();
         const maxAllowed = adminData ? adminData.maxClicks : 15;
 
+        // Hiện nút rút tiền sau 4 lần click thành công
         if (currentClicks >= 4) {
             document.getElementById("btn-cashout").style.display = "block";
             document.getElementById("status-msg").innerText = "CÓ THỂ RÚT TIỀN!";
@@ -222,6 +228,7 @@
             document.getElementById("status-msg").innerText = "CẦN ĐÀO TIẾP " + (4 - currentClicks) + " LẦN ĐỂ RÚT";
         }
 
+        // Kiểm tra nổ
         if (currentClicks >= maxAllowed) {
             document.getElementById("rock-img").classList.add("boom");
             document.getElementById("mult-text").innerText = "BOOM!";
@@ -232,6 +239,7 @@
             return;
         }
 
+        // Tăng hệ số nhân
         if (currentMult < 1.10) {
             currentMult = parseFloat((currentMult + 0.01).toFixed(2)); 
         } else {
