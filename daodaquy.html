@@ -7,24 +7,25 @@
     <style>
         body { 
             font-family: 'Segoe UI', sans-serif; 
-            background: #050a0f url('https://i.imgur.com/kS5x84S.png') no-repeat center center fixed; 
-            background-size: cover; 
+            /* Fix lỗi ảnh nền Imgur bị hỏng bằng màu nền Gradient Gaming */
+            background: radial-gradient(circle, #0a141e 0%, #050a0f 100%); 
             color: white; 
             margin: 0; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
             min-height: 100vh; 
+            overflow: hidden;
         }
 
         .main-panel { 
             width: 420px; 
-            background: rgba(10, 20, 30, 0.9); 
+            background: rgba(10, 20, 30, 0.95); 
             border-radius: 30px; 
             border: 2px solid #00d4ff; 
             padding: 30px; 
             text-align: center; 
-            box-shadow: 0 0 50px rgba(0, 212, 255, 0.4); 
+            box-shadow: 0 0 50px rgba(0, 212, 255, 0.3); 
             backdrop-filter: blur(15px); 
         }
 
@@ -109,7 +110,7 @@
         .back-link:hover { background: #00d4ff; color: #000; }
 
         .balance { font-size: 20px; color: #00ffcc; margin-bottom: 15px; font-weight: bold; }
-        .status { margin-top: 10px; font-weight: bold; color: #888; font-size: 14px; }
+        .status { margin-top: 10px; font-weight: bold; color: #888; font-size: 14px; min-height: 20px; }
     </style>
 </head>
 <body>
@@ -141,6 +142,7 @@
         projectId: "taixiupet99",
         databaseURL: "https://taixiupet99-default-rtdb.firebaseio.com"
     };
+
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     const playerName = localStorage.getItem("userRoblox") || "Khách";
@@ -149,6 +151,7 @@
 
     let currentGems = 0, currentMult = 1.00, isPlaying = false, betAmount = 0, currentClicks = 0;
 
+    // Lấy số dư từ Firebase
     userRef.on('value', snap => {
         currentGems = snap.val()?.gems || 0;
         document.getElementById("balance").innerText = currentGems.toLocaleString();
@@ -162,6 +165,7 @@
         document.getElementById("mult-text").style.color = "#00ffcc";
         document.getElementById("btn-cashout").style.display = "none";
         document.getElementById("rock-img").classList.remove("boom");
+        document.getElementById("rock-img").style.pointerEvents = "auto";
         document.getElementById("bet-input").disabled = false;
         document.getElementById("bet-input").value = "";
         document.getElementById("status-msg").innerText = "SẴN SÀNG VÁN MỚI!";
@@ -176,11 +180,13 @@
             if (isNaN(betAmount) || betAmount < 10) return alert("Cược tối thiểu 10 Gem!");
             if (betAmount > currentGems) return alert("Không đủ Gem!");
 
+            // Trừ tiền ngay khi bắt đầu
             await userRef.child('gems').set(currentGems - betAmount);
             
             // LOGIC TRỌNG SỐ: 85% nổ từ 1-13, 15% nổ từ 14-55
             let randomMax;
-            if (Math.random() < 0.85) {
+            let prob = Math.random();
+            if (prob < 0.85) {
                 randomMax = Math.floor(Math.random() * 13) + 1;
             } else {
                 randomMax = Math.floor(Math.random() * (55 - 14 + 1)) + 14;
@@ -200,49 +206,50 @@
             mineRef.update({ currentClicks: currentClicks });
         }
 
+        // Lấy dữ liệu maxClicks từ Firebase
         const snap = await mineRef.get();
-        const adminData = snap.val();
-        const maxAllowed = adminData ? adminData.maxClicks : 15;
+        const mineData = snap.val();
+        const maxAllowed = mineData ? mineData.maxClicks : 15;
 
-        // HIỆN NÚT RÚT TIỀN: Phải click ít nhất 4 lần mới cho rút
-        if (currentClicks >= 4) {
-            document.getElementById("btn-cashout").style.display = "block";
-            document.getElementById("status-msg").innerText = "CÓ THỂ RÚT TIỀN!";
-        } else {
-            document.getElementById("btn-cashout").style.display = "none";
-            document.getElementById("status-msg").innerText = "CẦN ĐÀO TIẾP " + (4 - currentClicks) + " LẦN ĐỂ RÚT";
-        }
-
-        // Xử lý nổ
+        // Xử lý nổ (BOOM)
         if (currentClicks >= maxAllowed) {
             document.getElementById("rock-img").classList.add("boom");
             document.getElementById("mult-text").innerText = "BOOM!";
             document.getElementById("mult-text").style.color = "#ff4d4d";
             document.getElementById("btn-cashout").style.display = "none";
-            document.getElementById("status-msg").innerText = "NỔ TẠI LẦN CLICK " + currentClicks;
-            setTimeout(initNewRound, 2000);
+            document.getElementById("status-msg").innerText = "BẠN ĐÃ ĐÀO TRÚNG BOM TẠI LẦN " + currentClicks;
+            setTimeout(initNewRound, 2500);
             return;
         }
 
-        // Tăng hệ số hiển thị
+        // Cập nhật hệ số nhân (x1.00 -> x1.10 -> x1.20...)
         if (currentMult < 1.10) {
-            currentMult = parseFloat((currentMult + 0.01).toFixed(2)); 
+            currentMult = Number((currentMult + 0.01).toFixed(2)); 
         } else {
-            currentMult = parseFloat((currentMult + 0.10).toFixed(2));
+            currentMult = Number((currentMult + 0.10).toFixed(2));
         }
         document.getElementById("mult-text").innerText = "x" + currentMult.toFixed(2);
+
+        // HIỆN NÚT RÚT TIỀN: Phải click ít nhất 4 lần
+        if (currentClicks >= 4) {
+            document.getElementById("btn-cashout").style.display = "block";
+            document.getElementById("status-msg").innerText = "BẤM RÚT TIỀN HOẶC ĐÀO TIẾP!";
+        } else {
+            document.getElementById("status-msg").innerText = "CẦN ĐÀO TIẾP " + (4 - currentClicks) + " LẦN ĐỂ RÚT";
+        }
     }
 
     async function cashOut() {
         if (!isPlaying || currentClicks < 4) return;
+        
         const winAmount = Math.floor(betAmount * currentMult);
         await userRef.child('gems').set(currentGems + winAmount);
+        
         document.getElementById("status-msg").innerHTML = `<span style="color:#00ffcc">THẮNG +${winAmount.toLocaleString()} 💎</span>`;
         document.getElementById("rock-img").style.pointerEvents = "none";
-        setTimeout(() => {
-            document.getElementById("rock-img").style.pointerEvents = "auto";
-            initNewRound();
-        }, 1500);
+        document.getElementById("btn-cashout").style.display = "none";
+        
+        setTimeout(initNewRound, 1500);
     }
 
     initNewRound();
