@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sảnh Chơi - Tài Xỉu Pet99</title>
+    <title>Sảnh Chơi - Pet99</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: white; margin: 0; padding: 20px; }
         .main-wrapper { display: flex; max-width: 1000px; margin: auto; gap: 20px; flex-wrap: wrap; justify-content: center; }
@@ -19,8 +19,14 @@
         .header-info { display: flex; justify-content: space-between; align-items: center; background: #2d2d2d; padding: 15px; border-radius: 15px; margin-bottom: 20px; }
         .user-tag { color: #2ecc71; font-weight: bold; font-size: 14px; }
         .gem-balance { color: #f1c40f; font-size: 20px; font-weight: bold; }
-        .nap-gem-note { background: linear-gradient(45deg, #f39c12, #e67e22); color: #000; padding: 14px; border-radius: 12px; font-weight: 900; margin-bottom: 20px; font-size: 13px; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); text-transform: uppercase; text-align: center; display: block; text-decoration: none; transition: 0.3s; box-sizing: border-box; }
-        .nap-gem-note:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(230, 126, 34, 0.6); filter: brightness(1.1); }
+        
+        .nap-gem-note { background: linear-gradient(45deg, #f39c12, #e67e22); color: #000; padding: 14px; border-radius: 12px; font-weight: 900; margin-bottom: 10px; font-size: 13px; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); text-transform: uppercase; text-align: center; display: block; text-decoration: none; transition: 0.3s; box-sizing: border-box; }
+        .nap-gem-note:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+        /* STYLE NÚT CHUYỂN QUA FILE HTML KHÁC */
+        .switch-game-btn { background: #262626; color: #f1c40f; padding: 12px; border-radius: 12px; font-weight: bold; margin-bottom: 20px; font-size: 13px; border: 1px solid #f1c40f; text-transform: uppercase; text-align: center; display: block; transition: 0.3s; cursor: pointer; text-decoration: none; }
+        .switch-game-btn:hover { background: #f1c40f; color: #000; }
+
         .dice-display { background: #121212; padding: 30px; border-radius: 20px 20px 0 0; font-size: 60px; border: 2px solid #333; border-bottom: none; display: flex; justify-content: center; gap: 10px; }
         .history-container { background: #121212; padding: 10px; border-radius: 0 0 20px 20px; margin-bottom: 20px; display: flex; justify-content: center; gap: 8px; border: 2px solid #333; border-top: 1px solid #444; flex-wrap: wrap; }
         .dot { width: 14px; height: 14px; border-radius: 50%; }
@@ -52,22 +58,28 @@
         </div>
         
         <a href="https://www.roblox.com/users/5741873127/profile" target="_blank" class="nap-gem-note">✨ ẤN VÀO ĐÂY ĐỂ NẠP/RÚT GEM ✨</a>
-        
-        <input type="number" id="bet-val" class="bet-input" placeholder="Nhập số Gem cược (Min 10)...">
-        <div class="dice-display" id="dice-result">🎲 🎲 🎲</div>
-        <div class="history-container" id="history-dots"></div>
-        <div id="status-msg" style="margin-bottom: 15px;">Đang kết nối...</div>
 
-        <div class="btn-group">
-            <div class="bet-column">
-                <div class="total-bet-all">Tổng Xỉu: <span id="total-xiu-all">0</span></div>
-                <button id="btn-xiu" class="btn btn-xiu" onclick="gamePlay('Xỉu')">XỈU <span class="btn-subtext">(3-10)</span></button>
-                <div class="bet-label">Cược: <span id="bet-xiu-val">0</span></div>
-            </div>
-            <div class="bet-column">
-                <div class="total-bet-all">Tổng Tài: <span id="total-tai-all">0</span></div>
-                <button id="btn-tai" class="btn btn-tai" onclick="gamePlay('Tài')">TÀI <span class="btn-subtext">(11-18)</span></button>
-                <div class="bet-label">Cược: <span id="bet-tai-val">0</span></div>
+        <div class="switch-game-btn" onclick="window.location.href='daodaquy.html'">
+            🎮 CHUYỂN GAME: ĐÀO ĐÁ QUÝ
+        </div>
+
+        <div id="game-taixiu-area">
+            <input type="number" id="bet-val" class="bet-input" placeholder="Nhập số Gem cược (Min 10)...">
+            <div class="dice-display" id="dice-result">🎲 🎲 🎲</div>
+            <div class="history-container" id="history-dots"></div>
+            <div id="status-msg" style="margin-bottom: 15px;">Đang kết nối...</div>
+
+            <div class="btn-group">
+                <div class="bet-column">
+                    <div class="total-bet-all">Tổng Xỉu: <span id="total-xiu-all">0</span></div>
+                    <button id="btn-xiu" class="btn btn-xiu" onclick="gamePlay('Xỉu')">XỈU <span class="btn-subtext">(3-10)</span></button>
+                    <div class="bet-label">Cược: <span id="bet-xiu-val">0</span></div>
+                </div>
+                <div class="bet-column">
+                    <div class="total-bet-all">Tổng Tài: <span id="total-tai-all">0</span></div>
+                    <button id="btn-tai" class="btn btn-tai" onclick="gamePlay('Tài')">TÀI <span class="btn-subtext">(11-18)</span></button>
+                    <div class="bet-label">Cược: <span id="bet-tai-val">0</span></div>
+                </div>
             </div>
         </div>
 
@@ -89,6 +101,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
+    // --- PHẦN FIREBASE CONFIG ---
     const firebaseConfig = {
         apiKey: "AIzaSyCPffcP5X0EAK5J85Jcfa9UIT7z2Bc-5Q",
         authDomain: "taixiupet99.firebaseapp.com",
@@ -168,11 +181,9 @@
                 if (myBetAmount > 0 && myChoice === resultType) {
                     const winAmount = Math.floor(myBetAmount * 1.95);
                     try {
-                        // FIX CỨNG: Lấy số dư mới nhất rồi ghi đè lên để tránh nghẽn transaction
                         const currentSnap = await userRef.child('gems').once('value');
                         const latestGems = currentSnap.val() || 0;
                         await userRef.child('gems').set(latestGems + winAmount);
-                        
                         msg.innerHTML = `<span style="color:#2ecc71; font-size:18px">🔥 THẮNG: +${winAmount.toLocaleString()} 💎</span>`;
                     } catch (e) {
                         msg.innerHTML = `<span style="color:#ff4757">LỖI CỘNG TIỀN!</span>`;
