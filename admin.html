@@ -1,1 +1,251 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đào Đá Quý - Pet99</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #050a0f url('https://i.imgur.com/kS5x84S.png') no-repeat center center fixed; 
+            background-size: cover; 
+            color: white; 
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+        }
 
+        .main-panel { 
+            width: 420px; 
+            background: rgba(10, 20, 30, 0.9); 
+            border-radius: 30px; 
+            border: 2px solid #00d4ff; 
+            padding: 30px; 
+            text-align: center; 
+            box-shadow: 0 0 50px rgba(0, 212, 255, 0.4); 
+            backdrop-filter: blur(15px); 
+        }
+
+        .multiplier-display { 
+            font-size: 70px; 
+            font-weight: 900; 
+            color: #00ffcc; 
+            margin: 10px 0; 
+            text-shadow: 0 0 25px rgba(0, 255, 204, 0.6); 
+        }
+        
+        .rock-container {
+            margin: 25px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+        .rock-target { 
+            width: 220px; 
+            cursor: pointer; 
+            transition: transform 0.05s; 
+            filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.5));
+            border-radius: 15px;
+        }
+        .rock-target:active { 
+            transform: scale(0.92); 
+        }
+        .rock-target.boom { 
+            filter: grayscale(1) brightness(0.2) blur(3px); 
+            pointer-events: none; 
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(5deg); } 50% { transform: rotate(-5deg); } 100% { transform: rotate(0deg); } }
+
+        input { 
+            background: rgba(0, 0, 0, 0.5); 
+            border: 2px solid #34495e; 
+            color: #00ffcc; 
+            padding: 15px; 
+            border-radius: 12px; 
+            text-align: center; 
+            font-size: 20px; 
+            width: 85%; 
+            outline: none; 
+            margin-bottom: 20px; 
+            font-weight: bold;
+        }
+        
+        .btn-cashout { 
+            background: linear-gradient(135deg, #00ffcc, #0099ff); 
+            border: none; 
+            color: #000; 
+            padding: 18px; 
+            border-radius: 15px; 
+            font-weight: 900; 
+            font-size: 20px; 
+            cursor: pointer; 
+            width: 95%; 
+            text-transform: uppercase; 
+            box-shadow: 0 5px #005577; 
+            display: none; 
+            margin-bottom: 15px;
+        }
+        .btn-cashout:active { transform: translateY(3px); box-shadow: 0 2px #005577; }
+        
+        .back-link { 
+            background: rgba(0, 0, 0, 0.3); 
+            border: 1px solid #00d4ff; 
+            color: #00d4ff; 
+            text-decoration: none; 
+            font-size: 14px; 
+            display: inline-block; 
+            padding: 12px; 
+            border-radius: 10px; 
+            margin-top: 10px; 
+            font-weight: bold; 
+            width: 90%;
+            transition: 0.3s;
+        }
+        .back-link:hover { background: #00d4ff; color: #000; }
+
+        .balance { font-size: 20px; color: #00ffcc; margin-bottom: 15px; font-weight: bold; }
+        .status { margin-top: 10px; font-weight: bold; color: #888; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="main-panel">
+    <div class="balance">VÍ: <span id="balance">0</span> 💎</div>
+    <div id="mult-text" class="multiplier-display">x1.00</div>
+
+    <input type="number" id="bet-input" placeholder="TIỀN CƯỢC...">
+
+    <div class="rock-container">
+        <img src="https://production-gameflipusercontent.fingershock.com/us-east-1:966f7967-6a5c-4880-8ece-1dff0a3dc2ad/ad1ea8e5-54bf-4693-a2dd-4cf9cee53ba9/51e19bb6-67c4-44fd-b3af-790a816f542f/640x640.webp" 
+             id="rock-img" class="rock-target" onclick="mineClick()">
+    </div>
+
+    <button id="btn-cashout" class="btn-cashout" onclick="cashOut()">💰 RÚT TIỀN</button>
+    <div id="status-msg" class="status">SẴN SÀNG ĐÀO</div>
+    
+    <a href="giaodien.html" class="back-link">⬅️ QUAY LẠI SẢNH CHÍNH</a>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCPffcP5X0EAK5J85Jcfa9UIT7z2Bc-5Q",
+        authDomain: "taixiupet99.firebaseapp.com",
+        projectId: "taixiupet99",
+        databaseURL: "https://taixiupet99-default-rtdb.firebaseio.com"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const playerName = localStorage.getItem("userRoblox") || "Khách";
+    const userRef = database.ref('users/' + playerName);
+    const mineRef = database.ref('active_mines/' + playerName);
+
+    let currentGems = 0, currentMult = 1.00, isPlaying = false, betAmount = 0, currentClicks = 0;
+
+    userRef.on('value', snap => {
+        currentGems = snap.val()?.gems || 0;
+        document.getElementById("balance").innerText = currentGems.toLocaleString();
+    });
+
+    function initNewRound() {
+        isPlaying = false;
+        currentMult = 1.00;
+        currentClicks = 0;
+        document.getElementById("mult-text").innerText = "x1.00";
+        document.getElementById("mult-text").style.color = "#00ffcc";
+        document.getElementById("btn-cashout").style.display = "none";
+        document.getElementById("rock-img").classList.remove("boom");
+        document.getElementById("bet-input").disabled = false;
+        document.getElementById("bet-input").value = "";
+        document.getElementById("status-msg").innerText = "SẴN SÀNG VÁN MỚI!";
+        mineRef.remove();
+    }
+
+    async function mineClick() {
+        if (document.getElementById("rock-img").classList.contains("boom")) return;
+
+        if (!isPlaying) {
+            betAmount = parseInt(document.getElementById("bet-input").value);
+            if (isNaN(betAmount) || betAmount < 10) return alert("Cược tối thiểu 10 Gem!");
+            if (betAmount > currentGems) return alert("Không đủ Gem!");
+
+            await userRef.child('gems').set(currentGems - betAmount);
+            
+            // LOGIC TRỌNG SỐ: 85% nổ từ 1-13, 15% nổ từ 14-55
+            let randomMax;
+            if (Math.random() < 0.85) {
+                randomMax = Math.floor(Math.random() * 13) + 1;
+            } else {
+                randomMax = Math.floor(Math.random() * (55 - 14 + 1)) + 14;
+            }
+
+            await mineRef.set({
+                betAmount: betAmount,
+                currentClicks: 1,
+                maxClicks: randomMax 
+            });
+
+            isPlaying = true;
+            currentClicks = 1;
+            document.getElementById("bet-input").disabled = true;
+        } else {
+            currentClicks++;
+            mineRef.update({ currentClicks: currentClicks });
+        }
+
+        const snap = await mineRef.get();
+        const adminData = snap.val();
+        const maxAllowed = adminData ? adminData.maxClicks : 15;
+
+        // HIỆN NÚT RÚT TIỀN: Phải click ít nhất 4 lần mới cho rút
+        if (currentClicks >= 4) {
+            document.getElementById("btn-cashout").style.display = "block";
+            document.getElementById("status-msg").innerText = "CÓ THỂ RÚT TIỀN!";
+        } else {
+            document.getElementById("btn-cashout").style.display = "none";
+            document.getElementById("status-msg").innerText = "CẦN ĐÀO TIẾP " + (4 - currentClicks) + " LẦN ĐỂ RÚT";
+        }
+
+        // Xử lý nổ
+        if (currentClicks >= maxAllowed) {
+            document.getElementById("rock-img").classList.add("boom");
+            document.getElementById("mult-text").innerText = "BOOM!";
+            document.getElementById("mult-text").style.color = "#ff4d4d";
+            document.getElementById("btn-cashout").style.display = "none";
+            document.getElementById("status-msg").innerText = "NỔ TẠI LẦN CLICK " + currentClicks;
+            setTimeout(initNewRound, 2000);
+            return;
+        }
+
+        // Tăng hệ số hiển thị
+        if (currentMult < 1.10) {
+            currentMult = parseFloat((currentMult + 0.01).toFixed(2)); 
+        } else {
+            currentMult = parseFloat((currentMult + 0.10).toFixed(2));
+        }
+        document.getElementById("mult-text").innerText = "x" + currentMult.toFixed(2);
+    }
+
+    async function cashOut() {
+        if (!isPlaying || currentClicks < 4) return;
+        const winAmount = Math.floor(betAmount * currentMult);
+        await userRef.child('gems').set(currentGems + winAmount);
+        document.getElementById("status-msg").innerHTML = `<span style="color:#00ffcc">THẮNG +${winAmount.toLocaleString()} 💎</span>`;
+        document.getElementById("rock-img").style.pointerEvents = "none";
+        setTimeout(() => {
+            document.getElementById("rock-img").style.pointerEvents = "auto";
+            initNewRound();
+        }, 1500);
+    }
+
+    initNewRound();
+</script>
+</body>
+</html>
