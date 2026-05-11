@@ -5,27 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đào Đá Quý - Pet99</title>
     <style>
+        /* FIX: Thay background ảnh bằng Gradient chuyển động */
         body { 
             font-family: 'Segoe UI', sans-serif; 
-            background: #050a0f url('https://i.imgur.com/kS5x84S.png') no-repeat center center fixed; 
-            background-size: cover; 
+            background: linear-gradient(-45deg, #050a0f, #0a1a2b, #001f3f, #050a0f);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
             color: white; 
             margin: 0; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
             min-height: 100vh; 
+            overflow: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         .main-panel { 
             width: 420px; 
-            background: rgba(10, 20, 30, 0.9); 
+            background: rgba(10, 20, 30, 0.85); 
             border-radius: 30px; 
             border: 2px solid #00d4ff; 
             padding: 30px; 
             text-align: center; 
-            box-shadow: 0 0 50px rgba(0, 212, 255, 0.4); 
+            box-shadow: 0 0 50px rgba(0, 212, 255, 0.3); 
             backdrop-filter: blur(15px); 
+            position: relative;
+            z-index: 1;
         }
 
         .multiplier-display { 
@@ -178,7 +189,6 @@
 
             await userRef.child('gems').set(currentGems - betAmount);
             
-            // LOGIC TRỌNG SỐ: 85% nổ từ 1-13, 15% nổ từ 14-55
             let randomMax;
             if (Math.random() < 0.85) {
                 randomMax = Math.floor(Math.random() * 13) + 1;
@@ -204,7 +214,6 @@
         const adminData = snap.val();
         const maxAllowed = adminData ? adminData.maxClicks : 15;
 
-        // HIỆN NÚT RÚT TIỀN: Phải click ít nhất 4 lần mới cho rút
         if (currentClicks >= 4) {
             document.getElementById("btn-cashout").style.display = "block";
             document.getElementById("status-msg").innerText = "CÓ THỂ RÚT TIỀN!";
@@ -213,7 +222,6 @@
             document.getElementById("status-msg").innerText = "CẦN ĐÀO TIẾP " + (4 - currentClicks) + " LẦN ĐỂ RÚT";
         }
 
-        // Xử lý nổ
         if (currentClicks >= maxAllowed) {
             document.getElementById("rock-img").classList.add("boom");
             document.getElementById("mult-text").innerText = "BOOM!";
@@ -224,7 +232,6 @@
             return;
         }
 
-        // Tăng hệ số hiển thị
         if (currentMult < 1.10) {
             currentMult = parseFloat((currentMult + 0.01).toFixed(2)); 
         } else {
