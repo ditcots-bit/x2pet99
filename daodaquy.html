@@ -74,7 +74,6 @@
             border-radius: 15px;
         }
         
-        /* Hiệu ứng co lại khi đào nhanh */
         .rock-target:active { transform: scale(0.85); }
         
         .rock-target.locked {
@@ -204,7 +203,6 @@
         const rockImg = document.getElementById("rock-img");
         const countdownEl = document.getElementById("countdown-text");
 
-        // --- TRẠNG THÁI 1: ĐỢI 3 GIÂY ĐẦU TIÊN ---
         if (!isPlaying) {
             betAmount = parseInt(document.getElementById("bet-input").value);
             if (isNaN(betAmount) || betAmount < 10) return alert("Cược tối thiểu 10 Gem!");
@@ -228,10 +226,15 @@
                     
                     await userRef.child('gems').set(currentGems - betAmount);
                     
-                    // Tính toán điểm nổ ngẫu nhiên
+                    // --- CẬP NHẬT TỈ LỆ NỔ TẠI ĐÂY ---
                     let rate = Math.random();
-                    if (rate < 0.80) maxAllowed = Math.floor(Math.random() * 20) + 2;
-                    else maxAllowed = Math.floor(Math.random() * (55 - 21 + 1)) + 21;
+                    if (rate < 0.70) { 
+                        // 70% tỉ lệ nổ từ click thứ 2 đến 20
+                        maxAllowed = Math.floor(Math.random() * (20 - 2 + 1)) + 2;
+                    } else { 
+                        // 30% tỉ lệ nổ từ click thứ 21 đến 55
+                        maxAllowed = Math.floor(Math.random() * (55 - 21 + 1)) + 21;
+                    }
 
                     await mineRef.set({ betAmount: betAmount, currentClicks: 0, maxClicks: maxAllowed });
 
@@ -245,15 +248,12 @@
             return;
         }
 
-        // --- TRẠNG THÁI 2: ĐÀO TỐC ĐỘ CAO ---
         currentClicks++;
         
-        // Cập nhật hệ số nhân
         if (currentMult < 1.10) currentMult = parseFloat((currentMult + 0.01).toFixed(2)); 
         else currentMult = parseFloat((currentMult + 0.10).toFixed(2));
         document.getElementById("mult-text").innerText = "x" + currentMult.toFixed(2);
 
-        // Nút rút tiền sau 4 click
         if (currentClicks >= 4) {
             document.getElementById("btn-cashout").style.display = "block";
             document.getElementById("status-msg").innerText = "RÚT NGAY KẺO NỔ!";
@@ -261,7 +261,6 @@
             document.getElementById("status-msg").innerText = "CẦN " + (4 - currentClicks) + " LẦN NỮA";
         }
 
-        // Kiểm tra nổ
         if (currentClicks >= maxAllowed) {
             isPlaying = false;
             rockImg.classList.add("boom");
@@ -271,7 +270,6 @@
             document.getElementById("status-msg").innerText = "NỔ TẠI " + currentClicks + " CLICK";
             setTimeout(initNewRound, 2000);
         } else {
-            // Update nhẹ lên Firebase không gây lag
             mineRef.update({ currentClicks: currentClicks });
         }
     }
