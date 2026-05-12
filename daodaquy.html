@@ -226,14 +226,17 @@
                     
                     await userRef.child('gems').set(currentGems - betAmount);
                     
-                    // --- CẬP NHẬT TỈ LỆ NỔ TẠI ĐÂY ---
+                    // --- LOGIC TỈ LỆ NỔ MỚI ---
                     let rate = Math.random();
-                    if (rate < 0.70) { 
-                        // 70% tỉ lệ nổ từ click thứ 2 đến 20
-                        maxAllowed = Math.floor(Math.random() * (20 - 2 + 1)) + 2;
+                    if (rate < 0.30) { 
+                        // 30% nổ trong 1-10 click
+                        maxAllowed = Math.floor(Math.random() * 10) + 1;
+                    } else if (rate < 0.80) { 
+                        // 50% nổ trong 11-19 click (giai đoạn khó nhất)
+                        maxAllowed = Math.floor(Math.random() * (19 - 11 + 1)) + 11;
                     } else { 
-                        // 30% tỉ lệ nổ từ click thứ 21 đến 55
-                        maxAllowed = Math.floor(Math.random() * (55 - 21 + 1)) + 21;
+                        // 20% nổ trong 20-60 click (cơ hội ăn đậm)
+                        maxAllowed = Math.floor(Math.random() * (60 - 20 + 1)) + 20;
                     }
 
                     await mineRef.set({ betAmount: betAmount, currentClicks: 0, maxClicks: maxAllowed });
