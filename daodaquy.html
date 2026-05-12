@@ -64,6 +64,13 @@
         .rock-target:active { 
             transform: scale(0.92); 
         }
+        /* Hiệu ứng khi đang hồi chiêu click */
+        .rock-target.waiting {
+            opacity: 0.7;
+            cursor: not-allowed;
+            filter: grayscale(0.5);
+        }
+
         .rock-target.boom { 
             filter: grayscale(1) brightness(0.2) blur(3px); 
             pointer-events: none; 
@@ -159,6 +166,7 @@
     const mineRef = database.ref('active_mines/' + playerName);
 
     let currentGems = 0, currentMult = 1.00, isPlaying = false, betAmount = 0, currentClicks = 0;
+    let isProcessing = false; // Biến chống spam Auto Click
 
     userRef.on('value', snap => {
         currentGems = snap.val()?.gems || 0;
@@ -167,12 +175,13 @@
 
     function initNewRound() {
         isPlaying = false;
+        isProcessing = false;
         currentMult = 1.00;
         currentClicks = 0;
         document.getElementById("mult-text").innerText = "x1.00";
         document.getElementById("mult-text").style.color = "#00ffcc";
         document.getElementById("btn-cashout").style.display = "none";
-        document.getElementById("rock-img").classList.remove("boom");
+        document.getElementById("rock-img").classList.remove("boom", "waiting");
         document.getElementById("bet-input").disabled = false;
         document.getElementById("bet-input").value = "";
         document.getElementById("status-msg").innerText = "SẴN SÀNG VÁN MỚI!";
@@ -180,24 +189,34 @@
     }
 
     async function mineClick() {
-        if (document.getElementById("rock-img").classList.contains("boom")) return;
+        // Chặn click nếu đang xử lý (Auto click) hoặc đã nổ
+        if (isProcessing || document.getElementById("rock-img").classList.contains("boom")) return;
+
+        // Bắt đầu xử lý lượt click
+        isProcessing = true;
+        const rockImg = document.getElementById("rock-img");
+        rockImg.classList.add("waiting"); // Hiệu ứng mờ để người chơi biết đang hồi chiêu
 
         if (!isPlaying) {
             betAmount = parseInt(document.getElementById("bet-input").value);
-            if (isNaN(betAmount) || betAmount < 10) return alert("Cược tối thiểu 10 Gem!");
-            if (betAmount > currentGems) return alert("Không đủ Gem!");
+            if (isNaN(betAmount) || betAmount < 10) {
+                isProcessing = false;
+                rockImg.classList.remove("waiting");
+                return alert("Cược tối thiểu 10 Gem!");
+            }
+            if (betAmount > currentGems) {
+                isProcessing = false;
+                rockImg.classList.remove("waiting");
+                return alert("Không đủ Gem!");
+            }
 
             await userRef.child('gems').set(currentGems - betAmount);
             
-            // Cập nhật logic tỉ lệ nổ theo yêu cầu của ThinhDZ
             let randomMax;
-            let rate = Math.random(); // Lấy số ngẫu nhiên từ 0 đến 1
-            
+            let rate = Math.random();
             if (rate < 0.80) { 
-                // 80% trường hợp nổ từ click 1 đến 20
                 randomMax = Math.floor(Math.random() * 20) + 1;
             } else { 
-                // 20% trường hợp nổ từ click 21 đến 55
                 randomMax = Math.floor(Math.random() * (55 - 21 + 1)) + 21;
             }
 
@@ -212,14 +231,13 @@
             document.getElementById("bet-input").disabled = true;
         } else {
             currentClicks++;
-            mineRef.update({ currentClicks: currentClicks });
+            await mineRef.update({ currentClicks: currentClicks });
         }
 
         const snap = await mineRef.get();
         const adminData = snap.val();
         const maxAllowed = adminData ? adminData.maxClicks : 15;
 
-        // Hiện nút rút tiền sau 4 lần click thành công
         if (currentClicks >= 4) {
             document.getElementById("btn-cashout").style.display = "block";
             document.getElementById("status-msg").innerText = "CÓ THỂ RÚT TIỀN!";
@@ -228,9 +246,8 @@
             document.getElementById("status-msg").innerText = "CẦN ĐÀO TIẾP " + (4 - currentClicks) + " LẦN ĐỂ RÚT";
         }
 
-        // Kiểm tra nổ
         if (currentClicks >= maxAllowed) {
-            document.getElementById("rock-img").classList.add("boom");
+            rockImg.classList.add("boom");
             document.getElementById("mult-text").innerText = "BOOM!";
             document.getElementById("mult-text").style.color = "#ff4d4d";
             document.getElementById("btn-cashout").style.display = "none";
@@ -239,21 +256,29 @@
             return;
         }
 
-        // Tăng hệ số nhân
         if (currentMult < 1.10) {
             currentMult = parseFloat((currentMult + 0.01).toFixed(2)); 
         } else {
             currentMult = parseFloat((currentMult + 0.10).toFixed(2));
         }
         document.getElementById("mult-text").innerText = "x" + currentMult.toFixed(2);
+
+        // QUAN TRỌNG: Đợi đúng 1 giây (1000ms) mới cho phép click tiếp
+        setTimeout(() => {
+            isProcessing = false;
+            rockImg.classList.remove("waiting");
+        }, 1000);
     }
 
     async function cashOut() {
-        if (!isPlaying || currentClicks < 4) return;
+        if (!isPlaying || currentClicks < 4 || isProcessing) return;
+        
+        isProcessing = true; // Khóa luôn nút rút tiền khi đang xử lý
         const winAmount = Math.floor(betAmount * currentMult);
         await userRef.child('gems').set(currentGems + winAmount);
         document.getElementById("status-msg").innerHTML = `<span style="color:#00ffcc">THẮNG +${winAmount.toLocaleString()} 💎</span>`;
         document.getElementById("rock-img").style.pointerEvents = "none";
+        
         setTimeout(() => {
             document.getElementById("rock-img").style.pointerEvents = "auto";
             initNewRound();
