@@ -11,8 +11,9 @@
         .chat-container { flex: 1; min-width: 300px; max-width: 400px; height: 600px; background: #1e1e1e; border-radius: 25px; display: flex; flex-direction: column; border: 1px solid #333; overflow: hidden; }
         .chat-header { background: #2d2d2d; padding: 15px; font-weight: bold; color: #f1c40f; border-bottom: 1px solid #444; }
         #chat-content { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; text-align: left; }
-        .chat-msg { background: #2d2d2d; padding: 8px 12px; border-radius: 12px; font-size: 14px; max-width: 85%; word-wrap: break-word; }
-        .chat-name { color: #2ecc71; font-weight: bold; font-size: 12px; margin-bottom: 3px; }
+        .chat-msg { background: #2d2d2d; padding: 8px 12px; border-radius: 12px; font-size: 14px; max-width: 85%; word-wrap: break-word; position: relative; }
+        .chat-name { color: #2ecc71; font-weight: bold; font-size: 12px; margin-bottom: 3px; display: flex; justify-content: space-between; }
+        .chat-time { color: #666; font-size: 10px; font-weight: normal; }
         .chat-input-area { padding: 15px; background: #262626; display: flex; gap: 10px; }
         #chat-input { flex: 1; background: #121212; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; outline: none; }
         .btn-send { background: #f1c40f; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
@@ -23,7 +24,6 @@
         .nap-gem-note { background: linear-gradient(45deg, #f39c12, #e67e22); color: #000; padding: 14px; border-radius: 12px; font-weight: 900; margin-bottom: 10px; font-size: 13px; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); text-transform: uppercase; text-align: center; display: block; text-decoration: none; transition: 0.3s; box-sizing: border-box; }
         .nap-gem-note:hover { transform: translateY(-2px); filter: brightness(1.1); }
 
-        /* STYLE NÚT CHUYỂN QUA FILE HTML KHÁC */
         .switch-game-btn { background: #262626; color: #f1c40f; padding: 12px; border-radius: 12px; font-weight: bold; margin-bottom: 20px; font-size: 13px; border: 1px solid #f1c40f; text-transform: uppercase; text-align: center; display: block; transition: 0.3s; cursor: pointer; text-decoration: none; }
         .switch-game-btn:hover { background: #f1c40f; color: #000; }
 
@@ -42,8 +42,20 @@
         .btn-subtext { font-size: 11px; display: block; opacity: 0.8; }
         .total-bet-all { font-size: 11px; margin-bottom: 5px; }
         .bet-label { background: #000; padding: 5px; border-radius: 8px; font-size: 13px; color: #f1c40f; margin-top: 5px; }
+
+        .bet-log-container { margin-top: 20px; background: #1a1a1a; border-radius: 15px; border: 1px solid #333; overflow: hidden; }
+        .bet-log-header { background: #252525; padding: 10px 15px; font-size: 11px; font-weight: bold; color: #888; border-bottom: 1px solid #333; display: flex; justify-content: space-between; }
+        #bet-log-list { height: 150px; overflow-y: auto; padding: 5px 12px; font-size: 13px; }
+        .log-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #222; }
+        .log-user-info { display: flex; flex-direction: column; flex: 1; }
+        .log-name { color: #aaa; font-size: 11px; text-align: left; display: flex; gap: 5px; align-items: center; }
+        .log-time { color: #555; font-size: 10px; }
+        .log-choice { font-weight: bold; color: #fff; font-size: 13px; text-align: left; }
+        .log-val-wait { color: #f1c40f; font-weight: bold; } 
+        .log-val-win { color: #2ecc71; font-weight: bold; } 
+        .log-val-lose { color: #e74c3c; font-weight: bold; opacity: 0.8; }
+
         .discord-btn { margin-top: 20px; background: #5865F2; color: white; padding: 12px; border-radius: 10px; width: 100%; cursor: pointer; font-weight: bold; border: none; transition: 0.3s; display: block; text-decoration: none; box-sizing: border-box; text-align: center; font-size: 16px; }
-        .discord-btn:hover { background: #4752c4; transform: translateY(-2px); }
         .logout-btn { margin-top: 10px; background: none; border: 1px solid #e74c3c; color: #e74c3c; padding: 8px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; }
         #status-msg { text-align: center; font-weight: bold; }
     </style>
@@ -57,29 +69,35 @@
             <div class="gem-balance"><span id="balance">0</span> 💎</div>
         </div>
         
-        <a href="https://www.roblox.com/users/5741873127/profile" target="_blank" class="nap-gem-note">✨ ẤN VÀO ĐÂY ĐỂ NẠP/RÚT GEM ✨</a>
+        <a href="https://www.roblox.com/users/5741873127/profile" target="_blank" class="nap-gem-note">✨ NẠP/RÚT QUA PROFILE ADMIN ✨</a>
 
-        <div class="switch-game-btn" onclick="window.location.href='daodaquy.html'">
-            🎮 CHUYỂN GAME: ĐÀO ĐÁ QUÝ
-        </div>
+        <div class="switch-game-btn" onclick="window.location.href='daodaquy.html'">🎮 CHUYỂN GAME: ĐÀO ĐÁ QUÝ</div>
 
         <div id="game-taixiu-area">
-            <input type="number" id="bet-val" class="bet-input" placeholder="Nhập số Gem cược (Min 10)...">
+            <input type="number" id="bet-val" class="bet-input" placeholder="Nhập số Gem cược...">
             <div class="dice-display" id="dice-result">🎲 🎲 🎲</div>
             <div class="history-container" id="history-dots"></div>
-            <div id="status-msg" style="margin-bottom: 15px;">Đang kết nối...</div>
+            <div id="status-msg" style="margin-bottom: 15px;">Kết nối...</div>
 
             <div class="btn-group">
                 <div class="bet-column">
                     <div class="total-bet-all">Tổng Xỉu: <span id="total-xiu-all">0</span></div>
-                    <button id="btn-xiu" class="btn btn-xiu" onclick="gamePlay('Xỉu')">XỈU <span class="btn-subtext">(3-10)</span></button>
+                    <button id="btn-xiu" class="btn btn-xiu" onclick="gamePlay('Xỉu')">XỈU</button>
                     <div class="bet-label">Cược: <span id="bet-xiu-val">0</span></div>
                 </div>
                 <div class="bet-column">
                     <div class="total-bet-all">Tổng Tài: <span id="total-tai-all">0</span></div>
-                    <button id="btn-tai" class="btn btn-tai" onclick="gamePlay('Tài')">TÀI <span class="btn-subtext">(11-18)</span></button>
+                    <button id="btn-tai" class="btn btn-tai" onclick="gamePlay('Tài')">TÀI</button>
                     <div class="bet-label">Cược: <span id="bet-tai-val">0</span></div>
                 </div>
+            </div>
+
+            <div class="bet-log-container">
+                <div class="bet-log-header">
+                    <span>📜 LỊCH SỬ CƯỢC</span>
+                    <span>THỜI GIAN</span>
+                </div>
+                <div id="bet-log-list"></div>
             </div>
         </div>
 
@@ -101,7 +119,6 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
-    // --- PHẦN FIREBASE CONFIG ---
     const firebaseConfig = {
         apiKey: "AIzaSyCPffcP5X0EAK5J85Jcfa9UIT7z2Bc-5Q",
         authDomain: "taixiupet99.firebaseapp.com",
@@ -115,11 +132,12 @@
     const totalBetRef = database.ref('gameSession/totalBets');
     const historyRef = database.ref('gameHistory');
     const chatRef = database.ref('publicChat');
+    const liveBetsRef = database.ref('gameSession/liveBets');
 
-    const playerName = localStorage.getItem("userRoblox") || ("Khách_" + (Math.floor(Math.random() * 8999) + 1000));
+    const playerName = localStorage.getItem("userRoblox") || ("Khách_" + Math.floor(Math.random() * 1000));
     document.getElementById("player-name").innerText = playerName;
 
-    let currentGems = 0, betXiu = 0, betTai = 0, canBet = false, isProcessing = false, hasRewarded = false;
+    let currentGems = 0, betXiu = 0, betTai = 0, canBet = false, hasRewarded = false;
     const userRef = database.ref('users/' + playerName);
     const userBetLockRef = database.ref('gameSession/userBetLocks/' + playerName);
     
@@ -134,6 +152,37 @@
         document.getElementById("total-tai-all").innerText = (d?.tai || 0).toLocaleString();
     });
 
+    // Định dạng thời gian HH:mm:ss
+    function formatTime(timestamp) {
+        const date = new Date(timestamp);
+        return date.getHours().toString().padStart(2, '0') + ":" + 
+               date.getMinutes().toString().padStart(2, '0') + ":" + 
+               date.getSeconds().toString().padStart(2, '0');
+    }
+
+    // Cập nhật bảng cược có thời gian
+    liveBetsRef.limitToLast(15).on('value', snap => {
+        const list = document.getElementById("bet-log-list");
+        const data = snap.val();
+        if (!data) return;
+        list.innerHTML = "";
+        Object.values(data).reverse().forEach(log => {
+            const item = document.createElement("div");
+            item.className = "log-item";
+            let statusClass = log.status === 'win' ? "log-val-win" : (log.status === 'lose' ? "log-val-lose" : "log-val-wait");
+            let valText = log.status === 'win' ? "+" + Math.floor(log.amount * 1.95).toLocaleString() : log.amount.toLocaleString();
+
+            item.innerHTML = `
+                <div class="log-user-info">
+                    <span class="log-name">${log.user} <span class="log-time">${formatTime(log.time || Date.now())}</span></span>
+                    <span class="log-choice">${log.choice}</span>
+                </div>
+                <div class="${statusClass}">${valText}</div>
+            `;
+            list.appendChild(item);
+        });
+    });
+
     historyRef.limitToLast(18).on('value', snap => {
         const box = document.getElementById("history-dots"); box.innerHTML = "";
         const data = snap.val();
@@ -144,15 +193,6 @@
         });
     });
 
-    userBetLockRef.on('value', snap => {
-        if (!snap.exists()) {
-            betXiu = 0; betTai = 0;
-            document.getElementById("bet-xiu-val").innerText = "0";
-            document.getElementById("bet-tai-val").innerText = "0";
-        }
-        updateButtonState();
-    });
-
     sessionRef.on('value', async snap => {
         const s = snap.val(); if (!s) return;
         const msg = document.getElementById("status-msg"), dice = document.getElementById("dice-result");
@@ -160,11 +200,9 @@
         if (s.status === "betting") {
             hasRewarded = false; 
             dice.innerText = "🎲 🎲 🎲";
-            if (s.timeLeft > 0) {
-                msg.innerHTML = `⏳ Thời gian: <span style="color:#f1c40f">${s.timeLeft}s</span>`;
-                canBet = s.timeLeft > 5;
-                if (!canBet) msg.innerHTML = `<span style="color:#e74c3c">🚫 HẾT GIỜ ĐẶT</span>`;
-            }
+            msg.innerHTML = `⏳ Thời gian: <span style="color:#f1c40f">${s.timeLeft}s</span>`;
+            canBet = s.timeLeft > 5;
+            if (!canBet) msg.innerHTML = `<span style="color:#e74c3c">HẾT GIỜ</span>`;
         }
         
         if (s.status === "result") {
@@ -174,91 +212,61 @@
             dice.innerText = s.dice.join("  ");
             
             if (!hasRewarded) {
-                hasRewarded = true; 
-                let myBetAmount = (betXiu > 0) ? betXiu : (betTai > 0 ? betTai : 0);
-                let myChoice = (betXiu > 0) ? "Xỉu" : (betTai > 0 ? "Tài" : "");
-
-                if (myBetAmount > 0 && myChoice === resultType) {
-                    const winAmount = Math.floor(myBetAmount * 1.95);
-                    try {
-                        const currentSnap = await userRef.child('gems').once('value');
-                        const latestGems = currentSnap.val() || 0;
-                        await userRef.child('gems').set(latestGems + winAmount);
-                        msg.innerHTML = `<span style="color:#2ecc71; font-size:18px">🔥 THẮNG: +${winAmount.toLocaleString()} 💎</span>`;
-                    } catch (e) {
-                        msg.innerHTML = `<span style="color:#ff4757">LỖI CỘNG TIỀN!</span>`;
-                    }
-                } else if (myBetAmount > 0) {
-                    msg.innerHTML = `<span style="color:#e74c3c">KẾT QUẢ: ${resultType} (THUA)</span>`;
-                } else {
-                    msg.innerHTML = `Kết quả: <b style="color:#f1c40f">${resultType}</b> (${total})`;
+                hasRewarded = true;
+                let myBet = betXiu > 0 ? betXiu : (betTai > 0 ? betTai : 0);
+                let myChoice = betXiu > 0 ? "Xỉu" : (betTai > 0 ? "Tài" : "");
+                if (myBet > 0 && myChoice === resultType) {
+                    const win = Math.floor(myBet * 1.95);
+                    const cG = (await userRef.child('gems').once('value')).val() || 0;
+                    userRef.child('gems').set(cG + win);
+                    msg.innerHTML = `<span style="color:#2ecc71">THẮNG: +${win}</span>`;
                 }
                 betXiu = 0; betTai = 0;
+                document.getElementById("bet-xiu-val").innerText = "0";
+                document.getElementById("bet-tai-val").innerText = "0";
             }
         }
-        updateButtonState();
+        document.getElementById("btn-xiu").disabled = !canBet || betTai > 0;
+        document.getElementById("btn-tai").disabled = !canBet || betXiu > 0;
     });
 
-    function updateButtonState() {
-        const btnX = document.getElementById("btn-xiu"), btnT = document.getElementById("btn-tai");
-        if (!canBet) { btnX.disabled = true; btnT.disabled = true; return; }
-        if (betXiu > 0) { btnX.disabled = false; btnT.disabled = true; }
-        else if (betTai > 0) { btnX.disabled = true; btnT.disabled = false; }
-        else { btnX.disabled = false; btnT.disabled = false; }
-    }
-
     async function gamePlay(choice) {
-        if (!canBet || isProcessing) return;
+        if (!canBet) return;
         let val = parseInt(document.getElementById("bet-val").value);
-        if (!val || val < 10) { alert("Mức cược tối thiểu là 10 💎!"); return; }
-        if (val > currentGems) { alert("Bạn không đủ Gem!"); return; }
+        if (!val || val < 10 || val > currentGems) return;
 
-        isProcessing = true;
-        try {
-            const lockSnap = await userBetLockRef.once('value');
-            if (lockSnap.exists() && lockSnap.val() !== choice) {
-                alert("Bạn đã đặt " + lockSnap.val() + " rồi!");
-                isProcessing = false; return;
+        userRef.child('gems').transaction(c => c - val, (err, comm) => {
+            if (comm) {
+                userBetLockRef.set(choice);
+                liveBetsRef.push({ user: playerName, amount: val, choice: choice, status: 'waiting', time: Date.now() });
+                if (choice === 'Xỉu') { betXiu += val; document.getElementById("bet-xiu-val").innerText = betXiu; }
+                else { betTai += val; document.getElementById("bet-tai-val").innerText = betTai; }
+                totalBetRef.child(choice === 'Xỉu' ? 'xiu' : 'tai').transaction(c => (c || 0) + val);
+                document.getElementById("bet-val").value = "";
             }
-
-            userRef.child('gems').transaction(current => {
-                if (current >= val) return current - val;
-                return;
-            }, (error, committed) => {
-                if (committed) {
-                    userBetLockRef.set(choice);
-                    if (choice === 'Xỉu') {
-                        betXiu += val;
-                        document.getElementById("bet-xiu-val").innerText = betXiu.toLocaleString();
-                    } else {
-                        betTai += val;
-                        document.getElementById("bet-tai-val").innerText = betTai.toLocaleString();
-                    }
-                    totalBetRef.child(choice === 'Xỉu' ? 'xiu' : 'tai').transaction(c => (c || 0) + val);
-                    document.getElementById("bet-val").value = "";
-                } else {
-                    alert("Giao dịch thất bại!");
-                }
-                isProcessing = false;
-                updateButtonState();
-            });
-        } catch (e) { isProcessing = false; }
+        });
     }
 
     function sendMessage() {
         const input = document.getElementById("chat-input");
         const text = input.value.trim();
-        if (text === "") return;
+        if (!text) return;
         chatRef.push({ name: playerName, msg: text, time: Date.now() });
         input.value = "";
     }
 
-    chatRef.limitToLast(50).on('child_added', snap => {
+    chatRef.limitToLast(30).on('child_added', snap => {
         const data = snap.val();
         const content = document.getElementById("chat-content");
         const div = document.createElement("div");
         div.className = "chat-msg";
-        div.innerHTML = `<div class="chat-name">${data.name}</div><div>${data.msg}</div>`;
+        div.innerHTML = `
+            <div class="chat-name">
+                ${data.name} 
+                <span class="chat-time">${formatTime(data.time || Date.now())}</span>
+            </div>
+            <div>${data.msg}</div>
+        `;
         content.appendChild(div);
         content.scrollTop = content.scrollHeight;
     });
