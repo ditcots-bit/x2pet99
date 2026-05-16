@@ -64,7 +64,7 @@
         .xucxac-result { position: absolute; z-index: 2; display: flex; gap: 8px; justify-content: center; align-items: center; width: 100%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
         .xx-img { width: 52px; height: 52px; border-radius: 8px; background: white; padding: 2px; box-shadow: 0 4px 10px rgba(0,0,0,0.8); }
         
-        #caito { width: 330px; z-index: 10; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scaleY(-1); transition: transform 0.8s cubic-bezier(0.5, -0.5, 0.5, 1.5); filter: drop-shadow(0 15px 30px rgba(0,0,0,0.9)); }
+        #caito { width: 330px; z-index: 10; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scaleY(-1); transition: transform 0.8s cubic-bezier(0.5, -0.5, 0.5, 1.5), opacity 0.4s ease; filter: drop-shadow(0 15px 30px rgba(0,0,0,0.9)); }
         
         #gameTimer { 
             position: absolute; z-index: 11; 
@@ -95,7 +95,7 @@
         .count_coin_order { position: absolute; top: -6px; right: -6px; background: linear-gradient(135deg, #ffeb3b, #fbc02d); color: #000; border-radius: 8px; min-width: 28px; height: 24px; font-weight: 800; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; padding: 0 6px; box-shadow: 0 3px 6px rgba(0,0,0,0.5); }
         .my_bet_label { position: absolute; bottom: 2px; font-size: 0.7rem; color: #00ff00; font-weight: bold; background: rgba(0,0,0,0.6); padding: 0px 5px; border-radius: 4px; }
 
-        /* BẢNG LỊCH SỬ CƯỢC PHÒNG CHUẨN */
+        /* BÀN LỊCH SỬ CƯỢC PHÒNG CHUẨN */
         .bet-log-container { margin-top: 10px; background: #1a1a1a; border-radius: 15px; border: 1px solid #333; overflow: hidden; width: 100%; }
         .bet-log-header { background: #252525; padding: 10px 15px; font-size: 11px; font-weight: bold; color: #888; border-bottom: 1px solid #333; display: flex; justify-content: space-between; }
         #bet-log-list { height: 160px; overflow-y: auto; padding: 5px 12px; font-size: 13px; }
@@ -109,8 +109,8 @@
         .log-val-lose { color: #e74c3c; font-weight: bold; opacity: 0.8; }
 
         footer { background: #111; padding: 12px 40px; border-top: 2px solid var(--primary-gold); border-radius: 15px 15px 0 0; }
-        .win-effect { animation: winPulse 0.5s infinite; border-color: var(--primary-gold); box-shadow: 0 0 20px var(--primary-gold); }
-        @keyframes winPulse { 0%, 100% { background: rgba(255,215,0,0.15); } 50% { background: rgba(255,215,0,0.45); } }
+        .win-effect { animation: winPulse 0.5s infinite !important; border-color: #00ff00 !important; box-shadow: 0 0 20px #00ff00 !important; }
+        @keyframes winPulse { 0%, 100% { background: rgba(0,255,0,0.15); } 50% { background: rgba(0,255,0,0.45); } }
     </style>
 </head>
 <body>
@@ -197,8 +197,6 @@
         const userRef = database.ref('users/' + playerName);
         const roomBetRef = database.ref('baucua_room/bets');
         const liveBetsRef = database.ref('baucua_room/liveBets');
-        
-        // ĐƯỜNG DẪN ĐỒNG BỘ THỜI GIAN VÀ TRẠNG THÁI TỪ SERVER TIMEBAUCUACA
         const serverSystemRef = database.ref('baucua_server');
 
         let selectedBetAmount = 10000000;
@@ -210,9 +208,10 @@
         let myCurrentBets = { nai: 0, bau: 0, ga: 0, ca: 0, cua: 0, tom: 0 };
         let lastBetTime = 0;
         let rewardedThisMatch = false;
+        let hasResetInterface = false; // Cờ chặn việc lặp reset giao diện ván mới
         const linhVat = ['nai', 'bau', 'ga', 'ca', 'cua', 'tom'];
 
-        // Đồng bộ tiền cược toàn phòng
+        // Đồng bộ tổng tiền cược của toàn phòng
         roomBetRef.on('value', snap => {
             const bets = snap.val() || {};
             linhVat.forEach(type => {
@@ -221,7 +220,7 @@
             });
         });
 
-        // Đồng bộ ví Gems của người chơi
+        // Đồng bộ số tiền Gems cá nhân thực tế
         userRef.on('value', snap => {
             const data = snap.val();
             if (data) {
@@ -238,7 +237,7 @@
                    date.getSeconds().toString().padStart(2, '0');
         }
 
-        // Lịch sử cược phòng
+        // Lịch sử cược phòng chung hiển thị thời gian thực
         liveBetsRef.limitToLast(15).on('value', snap => {
             const list = document.getElementById("bet-log-list");
             const data = snap.val();
@@ -300,7 +299,7 @@
         }
 
         window.datCuoc = function(type) {
-            if (currentState !== "BETTING") return; // KHÓA CƯỢC KHI KHÔNG PHẢI TRẠNG THÁI ĐẶT CƯỢC
+            if (currentState !== "BETTING") return; 
             const currentTime = new Date().getTime();
             if (currentTime - lastBetTime < 300) return; 
 
@@ -327,7 +326,7 @@
             liveBetsRef.push({ user: playerName, amount: selectedBetAmount, choice: type, status: 'waiting', time: Date.now() });
         }
 
-        // ⚡ TRÁI TIM MỚI: LẮNG NGHE DỮ LIỆU ĐỒNG BỘ TUYỆT ĐỐI TỪ SERVER TIMEBAUCUACA.HTML
+        // ⚡ TRÁI TIM ĐỒNG BỘ: XỬ LÝ LOẠI BỎ TOÀN BỘ LỖI LỆCH TRẠNG THÁI TỪ SERVER ĐẾM NGƯỢC
         serverSystemRef.on('value', snap => {
             const serverData = snap.val();
             if (!serverData) return;
@@ -337,16 +336,15 @@
             const txtTimer = document.getElementById('gameTimer');
 
             let serverSec = serverData.currentSecond;
-            let serverState = serverData.state; // WAITING, BETTING, RESULT
+            let serverState = serverData.state; 
             let results = serverData.dices || ['bau', 'cua', 'tom'];
 
-            currentState = serverState; // Cập nhật trạng thái cục bộ theo server
+            currentState = serverState; 
 
-            // --- GIAI ĐOẠN CHUẨN BỊ VÀ XÓC ĐĨA ---
+            // --- GIAI ĐOẠN CHUẨN BỊ VÀ LẮC BÁT ---
             if (serverState === "WAITING") {
                 bat.classList.remove('mo-nap');
                 
-                // Hiển thị hiệu ứng xóc đĩa khi bắt đầu chu kỳ giây lớn
                 if (serverSec === 30 || serverSec === 29) {
                     bat.classList.add('lac-animation');
                     txtStatus.innerText = "NHÀ CÁI ĐANG XÓC ĐĨA... NGHIÊM CẤM ĐẶT CƯỢC!";
@@ -355,11 +353,13 @@
                     txtStatus.innerText = "CHUẨN BỊ BẮT ĐẦU VÁN MỚI...";
                 }
 
-                // Reset giao diện cược khi server sang giây đầu của ván mới (Giây 30 hoặc 29)
-                if (serverSec >= 29) {
+                // 🔄 THỰC HIỆN DỌN SẠCH GIAO DIỆN CƯỢC KHI BẮT ĐẦU VÁN MỚI
+                if (!hasResetInterface) {
+                    hasResetInterface = true;
                     rewardedThisMatch = false;
                     uniqueBetsChosen = [];
                     myCurrentBets = { nai: 0, bau: 0, ga: 0, ca: 0, cua: 0, tom: 0 };
+                    
                     linhVat.forEach(t => {
                         document.getElementById('my_' + t).innerText = "Bạn: 0";
                     });
@@ -375,46 +375,54 @@
             else if (serverState === "BETTING") {
                 bat.classList.remove('lac-animation');
                 bat.classList.remove('mo-nap');
-                
+                hasResetInterface = false; // Mở lại cờ để chuẩn bị dọn dẹp cho ván sau nữa
+
                 txtTimer.style.opacity = "1";
                 txtTimer.style.color = "#00ff00";
                 txtTimer.innerText = serverSec < 10 ? "0" + serverSec : serverSec;
                 txtStatus.innerText = "MỜI ĐẶT CƯỢC TRỰC TUYẾN (TỐI ĐA 2 Ô)!";
             }
             
-            // --- GIAI ĐOẠN KHUI KẾT QUẢ & TRẢ THƯỞNG ---
+            // --- GIAI ĐOẠN KHUI KẾT QUẢ & TRAO THƯỞNG ---
             else if (serverState === "RESULT") {
                 bat.classList.remove('lac-animation');
-                bat.classList.add('mo-nap'); // Mở bát ra
-                
-                txtTimer.style.opacity = "0";
-                txtStatus.innerText = "XEM KẾT QUẢ VÁN ĐẤU...";
+                bat.classList.add('mo-nap'); // Mở bát hiển thị kết quả
+                hasResetInterface = false;
 
-                // Hiển thị ngay 3 hình xúc xắc chuẩn từ Server
+                txtTimer.style.opacity = "0";
+
+                // Hiển thị chuẩn xác 3 hình xúc xắc do Server trả về
                 document.getElementById('res1').src = `img/${results[0]}.png`;
                 document.getElementById('res2').src = `img/${results[1]}.png`;
                 document.getElementById('res3').src = `img/${results[2]}.png`;
 
-                // Sáng đèn các ô trúng thưởng
+                // Đếm số lượng xuất hiện của linh vật trúng thưởng để kích hoạt viền sáng
                 let counts = {};
                 results.forEach(res => {
                     counts[res] = (counts[res] || 0) + 1;
-                    const cell = document.querySelector(`[data-type="${res}"]`);
-                    if (cell) cell.classList.add('win-effect');
                 });
 
-                // Thực hiện tính tiền thưởng chính xác 1 lần duy nhất theo Data Server
+                // Xóa viền cũ trước rồi kích hoạt lại viền sáng xanh cho các ô thắng
+                document.querySelectorAll('.cell_chess').forEach(el => el.classList.remove('win-effect'));
+                for (let res in counts) {
+                    const cell = document.querySelector(`[data-type="${res}"]`);
+                    if (cell) cell.classList.add('win-effect');
+                }
+
+                // 💥 TÍNH TOÁN TIỀN THƯỞNG DUY NHẤT 1 LẦN (Chặn hoàn toàn lỗi cộng lặp)
                 if (!rewardedThisMatch) {
                     rewardedThisMatch = true;
                     
                     let totalWinGems = 0;
                     for (let key in myCurrentBets) {
                         if (myCurrentBets[key] > 0 && counts[key]) {
+                            // Tiền thưởng = (Tiền đặt gốc x Số mặt xúc xắc nổ) x 1.9 hệ số trả thưởng
                             totalWinGems += (myCurrentBets[key] * counts[key]) * 1.9; 
                         }
                     }
 
                     if (totalWinGems > 0) {
+                        // Cộng tiền trực tiếp lên cơ sở dữ liệu Firebase
                         userRef.child('gems').set(currentGems + totalWinGems);
                         txtStatus.innerText = `💥 BẠN ĐÃ THẮNG +${Math.floor(totalWinGems).toLocaleString()} GEMS!`;
                     } else {
