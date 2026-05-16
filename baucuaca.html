@@ -213,16 +213,16 @@
         window.matchResults = [];
         let latestAdminCheat = null;
 
-        // LẮNG NGHE ADMIN ÉP CẦU LIÊN TỤC TRONG THỜI GIAN THỰC
-        adminCheatRef.on('value', snap => {
-            latestAdminCheat = snap.val();
-            // Nếu Admin vừa bấm áp dụng và đang trong thời gian cược -> Đè kết quả ngay ván này luôn
-            if (currentState === "BETTING" && latestAdminCheat && latestAdminCheat.results && latestAdminCheat.results.length === 3) {
-                window.matchResults = latestAdminCheat.results;
-                capNhatHinhAnhXucXac();
-            }
+        // ĐỒNG BỘ DỮ LIỆU ĐẶT CƯỢC CỦA TOÀN PHÒNG CHÍNH XÁC LÊN GIAO DIỆN
+        roomBetRef.on('value', snap => {
+            const bets = snap.val() || {};
+            linhVat.forEach(type => {
+                const totalAmount = bets[type] || 0;
+                document.getElementById('bet_' + type).innerText = totalAmount.toLocaleString();
+            });
         });
 
+        // ĐỒNG BỘ SỐ GEMS HIỆN TẠI CỦA BẠN
         userRef.on('value', snap => {
             const data = snap.val();
             if (data) {
@@ -232,14 +232,6 @@
             }
         });
 
-        roomBetRef.on('value', snap => {
-            const bets = snap.val() || {};
-            linhVat.forEach(type => {
-                const totalAmount = bets[type] || 0;
-                document.getElementById('bet_' + type).innerText = totalAmount.toLocaleString();
-            });
-        });
-
         function formatTime(timestamp) {
             const date = new Date(timestamp);
             return date.getHours().toString().padStart(2, '0') + ":" + 
@@ -247,6 +239,7 @@
                    date.getSeconds().toString().padStart(2, '0');
         }
 
+        // TẢI LỊCH SỬ CƯỢC KHÔNG LOẠN TRẠNG THÁI VÀ KHÔNG GHI ĐÈ SAI VÁN
         liveBetsRef.limitToLast(15).on('value', snap => {
             const list = document.getElementById("bet-log-list");
             const data = snap.val();
@@ -261,7 +254,7 @@
                 item.innerHTML = `
                     <div class="log-user-info">
                         <span class="log-name">${log.user} <span class="log-time">${formatTime(log.time || Date.now())}</span></span>
-                        <span class="log-choice">Cược: ${log.choice}</span>
+                        <span class="log-choice">Cược: ${log.choice.toUpperCase()}</span>
                     </div>
                     <div class="${statusClass}">${valText}</div>
                 `;
@@ -269,12 +262,14 @@
             });
         });
 
+        // CHỌN CHIP ĐẶT CƯỢC
         window.selectChip = function(amount, element) {
             selectedBetAmount = amount; isAllInMode = false;
             document.querySelectorAll('.chip-btn').forEach(btn => btn.classList.remove('active-chip'));
             element.classList.add('active-chip');
         }
 
+        // CLICK ALL-IN
         window.clickAllIn = function(element) {
             if (currentState !== "BETTING" || currentGems <= 0) return;
             if (uniqueBetsChosen.length === 0) {
@@ -286,6 +281,7 @@
             executeAllInAction();
         }
 
+        // THỰC THI ALL IN
         function executeAllInAction() {
             if (uniqueBetsChosen.length === 0 || currentGems <= 0) return;
             const totalGemsToBet = currentGems;
@@ -298,7 +294,6 @@
                 myCurrentBets[type] += gemsPerSlot;
                 document.getElementById('my_' + type).innerText = `Bạn: ${myCurrentBets[type].toLocaleString()}`;
                 roomBetRef.child(type).transaction(current => (current || 0) + gemsPerSlot);
-                
                 liveBetsRef.push({ user: playerName, amount: gemsPerSlot, choice: type, status: 'waiting', time: Date.now() });
             });
 
@@ -308,13 +303,14 @@
             selectedBetAmount = 10000000;
         }
 
+        // XỬ LÝ ĐẶT CƯỢC Ô LINH VẬT CHUẨN XÁC - KHÓA TUYỆT ĐỐI KHI ĐANG LẮC HOẶC RA KẾT QUẢ
         window.datCuoc = function(type) {
-            if (currentState !== "BETTING") return;
+            if (currentState !== "BETTING") return; // KHÓA CƯỢC TRONG CÁC GIAI ĐOẠN KHÁC
             const currentTime = new Date().getTime();
-            if (currentTime - lastBetTime < 1000) return; 
+            if (currentTime - lastBetTime < 300) return; 
 
             if (!uniqueBetsChosen.includes(type)) {
-                if (uniqueBetsChosen.length >= 2) return;
+                if (uniqueBetsChosen.length >= 2) return; 
                 uniqueBetsChosen.push(type);
             }
 
@@ -333,10 +329,10 @@
             document.getElementById('my_' + type).innerText = `Bạn: ${myCurrentBets[type].toLocaleString()}`;
             
             roomBetRef.child(type).transaction(current => (current || 0) + selectedBetAmount);
-            
             liveBetsRef.push({ user: playerName, amount: selectedBetAmount, choice: type, status: 'waiting', time: Date.now() });
         }
 
+        // HIỂN THỊ HÌNH ẢNH BA XÚC XẮC KHI MỞ BÁT
         function capNhatHinhAnhXucXac() {
             if (window.matchResults && window.matchResults.length === 3) {
                 document.getElementById('res1').src = `img/${window.matchResults[0]}.png`;
@@ -345,6 +341,16 @@
             }
         }
 
+        // LẮNG NGHE ADMIN ÉP CẦU THEO THỜI GIAN THỰC
+        adminCheatRef.on('value', snap => {
+            latestAdminCheat = snap.val();
+            if (currentState === "BETTING" && latestAdminCheat && latestAdminCheat.results && latestAdminCheat.results.length === 3) {
+                window.matchResults = latestAdminCheat.results;
+                capNhatHinhAnhXucXac();
+            }
+        });
+
+        // 🔄 VÒNG LẶP THỜI GIAN VÀ TRẢ THƯỞNG KHÔNG LOẠN (32 GIÂY MỘT CHU KỲ)
         setInterval(() => {
             const now = new Date();
             const totalSeconds = Math.floor(now.getTime() / 1000);
@@ -354,36 +360,43 @@
             const txtStatus = document.getElementById('statusGame');
             const txtTimer = document.getElementById('gameTimer');
 
+            // -------------------------------------------------------------
+            // GIAI ĐOẠN 1: NHÀ CÁI XÓC ĐĨA & XOÁ SẠCH TIỀN CŨ (Giây 0 -> Giây 2)
+            // -------------------------------------------------------------
             if (cycleSec >= 0 && cycleSec < 2) {
                 if (currentState !== "SHAKING") {
                     currentState = "SHAKING";
                     rewardedThisMatch = false;
                     uniqueBetsChosen = [];
+                    
+                    // Reset tiền cược cục bộ trên máy người chơi
                     myCurrentBets = { nai: 0, bau: 0, ga: 0, ca: 0, cua: 0, tom: 0 };
-                    linhVat.forEach(t => document.getElementById('my_' + t).innerText = "Bạn: 0");
+                    linhVat.forEach(t => {
+                        document.getElementById('my_' + t).innerText = "Bạn: 0";
+                        document.getElementById('bet_' + t).innerText = "0";
+                    });
+                    
                     document.querySelectorAll('.cell_chess').forEach(el => el.classList.remove('win-effect'));
                     bat.classList.remove('mo-nap');
-                    bat.classList.add('lac-animation');
+                    bat.classList.add('lac-animation'); // Thêm class rung lắc
                     txtTimer.style.opacity = "1";
                     txtTimer.style.color = "#ffcc00";
                     txtTimer.innerText = "XX";
-                    txtStatus.innerText = "NHÀ CÁI ĐANG XÓC ĐĨA...";
+                    txtStatus.innerText = "NHÀ CÁI ĐANG XÓC ĐĨA... NGHIÊM CẤM ĐẶT CƯỢC!";
 
+                    // Chỉ máy chủ hoặc người đầu tiên dọn bàn cược chung Firebase về 0 đúng giây 0
                     if (cycleSec === 0) { 
                         roomBetRef.set({ nai:0, bau:0, ga:0, ca:0, cua:0, tom:0 }); 
                     }
                 }
             } 
+            // -------------------------------------------------------------
+            // GIAI ĐOẠN 2: THỜI GIAN CHO PHÉP ĐẶT CƯỢC (Giây 2 -> Giây 22)
+            // -------------------------------------------------------------
             else if (cycleSec >= 2 && cycleSec < 22) {
                 if (currentState !== "BETTING") {
                     currentState = "BETTING";
-                    bat.classList.remove('lac-animation');
-                }
-                
-                // Cập nhật xúc xắc thời gian thực nếu Admin thay đổi ý định/bấm nút Áp dụng khi đang cược
-                if (latestAdminCheat && latestAdminCheat.results && latestAdminCheat.results.length === 3) {
-                    window.matchResults = latestAdminCheat.results;
-                    capNhatHinhAnhXucXac();
+                    bat.classList.remove('lac-animation'); // Ngừng lắc bát
                 }
 
                 let timeLeft = 22 - cycleSec;
@@ -391,27 +404,38 @@
                 txtTimer.style.color = "#00ff00";
                 txtStatus.innerText = "MỜI ĐẶT CƯỢC TRỰC TUYẾN (TỐI ĐA 2 Ô)!";
             } 
+            // -------------------------------------------------------------
+            // GIAI ĐOẠN 3: KHÓA CỬA CƯỢC - ĐỒNG BỘ KẾT QUẢ PHÒNG CHUNG (Giây 22 -> Giây 27)
+            // -------------------------------------------------------------
             else if (cycleSec >= 22 && cycleSec < 27) {
                 if (currentState !== "LOCKED") {
                     currentState = "LOCKED";
                     isAllInMode = false;
                     
-                    // CHỐT KẾT QUẢ VÁN ĐẤU TẠI GIÂY THỨ 22
+                    // ĐỒNG BỘ MULTIPLAYER CHỐNG ĐÈ KẾT QUẢ NHAU
                     if (latestAdminCheat && latestAdminCheat.results && latestAdminCheat.results.length === 3) {
-                        // Nếu Admin có can thiệp -> Lấy kết quả cheat của Admin
                         window.matchResults = latestAdminCheat.results;
+                        capNhatHinhAnhXucXac();
                     } else {
-                        // NẾU ADMIN KHÔNG NHÚNG TAY -> RANDOM 100% HOÀN TOÀN TỰ NHIÊN
+                        // Tạo kết quả ngẫu nhiên tạm thời
                         const r1 = linhVat[Math.floor(Math.random() * 6)];
                         const r2 = linhVat[Math.floor(Math.random() * 6)];
                         const r3 = linhVat[Math.floor(Math.random() * 6)];
-                        window.matchResults = [r1, r2, r3];
+                        const localRandom = [r1, r2, r3];
 
-                        // Đẩy kết quả random này lên Firebase để toàn bộ các máy người chơi khác cùng thấy chung kết quả (Tránh lệch đồng bộ)
-                        adminCheatRef.set({ results: window.matchResults });
+                        // Dùng transaction: Máy nào gửi lệnh thành công đầu tiên sẽ giữ kết quả đó cho cả phòng
+                        adminCheatRef.transaction(current => {
+                            if (current === null) {
+                                return { results: localRandom, generatedBy: playerName };
+                            }
+                            return; // Không ghi đè nếu máy khác đã đăng ký kết quả trước
+                        }, (error, committed, snapshot) => {
+                            if (snapshot && snapshot.val()) {
+                                window.matchResults = snapshot.val().results;
+                                capNhatHinhAnhXucXac();
+                            }
+                        });
                     }
-                    
-                    capNhatHinhAnhXucXac();
                 }
                 
                 let timeLeft = 27 - cycleSec;
@@ -419,17 +443,15 @@
                 txtTimer.style.color = "#ffcc00";
                 txtStatus.innerText = "ĐÃ KHÓA CỬA CƯỢC! CHỜ NHÀ CÁI MỞ BÁT...";
             } 
+            // -------------------------------------------------------------
+            // GIAI ĐOẠN 4: MỞ NẮP BÁT XEM KẾT QUẢ ĐÚNG 3S RỒI MỚI CỘNG TIỀN (Giây 27 -> Giây 32)
+            // -------------------------------------------------------------
             else if (cycleSec >= 27 && cycleSec < 32) {
                 if (currentState !== "RESULT") {
                     currentState = "RESULT";
-                    bat.classList.add('mo-nap');
+                    bat.classList.add('mo-nap'); // Mở bát ra tại giây thứ 27
                     txtTimer.style.opacity = "0";
-
-                    // HẾT VÁN ĐẤU (Khi đang mở bát): Xóa sạch dữ liệu trên Firebase để ván sau tự động quay về Random
-                    setTimeout(() => {
-                        adminCheatRef.set(null);
-                        latestAdminCheat = null;
-                    }, 2000);
+                    txtStatus.innerText = "XEM KẾT QUẢ VÁN ĐẤU...";
                 }
 
                 const results = window.matchResults || [];
@@ -440,34 +462,28 @@
                     if (cell) cell.classList.add('win-effect');
                 });
 
-                if (!rewardedThisMatch) {
+                // TỐI ƯU: Đợi người chơi xem kết quả đúng 3 giây (Đến giây thứ 30) mới cộng tiền thưởng công khai
+                if (cycleSec >= 30 && !rewardedThisMatch) {
                     rewardedThisMatch = true;
                     
-                    liveBetsRef.once('value', snap => {
-                        const logs = snap.val();
-                        if (logs) {
-                            Object.keys(logs).forEach(key => {
-                                let log = logs[key];
-                                if (log.status === 'waiting') {
-                                    let isWin = counts[log.choice] > 0;
-                                    liveBetsRef.child(key).child('status').set(isWin ? 'win' : 'lose');
-                                }
-                            });
-                        }
-                    });
-
                     let totalWinGems = 0;
                     for (let key in myCurrentBets) {
                         if (myCurrentBets[key] > 0 && counts[key]) {
-                            totalWinGems += (myCurrentBets[key] * counts[key]) * 1.9;
+                            totalWinGems += (myCurrentBets[key] * counts[key]) * 1.9; 
                         }
                     }
+
                     if (totalWinGems > 0) {
                         userRef.child('gems').set(currentGems + totalWinGems);
-                        txtStatus.innerText = `BẠN ĐÃ THẮNG +${Math.floor(totalWinGems).toLocaleString()} GEMS!`;
+                        txtStatus.innerText = `💥 BẠN ĐÃ THẮNG +${Math.floor(totalWinGems).toLocaleString()} GEMS!`;
                     } else {
-                        txtStatus.innerText = "HẾT GIỜ! KẾT QUẢ VÁN ĐẤU.";
+                        txtStatus.innerText = "HẾT GIỜ! CHÚC BẠN MAY MẮN VÁN SAU.";
                     }
+                }
+
+                // Giây cuối cùng của ván (Giây 31): Xóa dữ liệu cheat cũ để ván sau chạy ngẫu nhiên sạch sẽ
+                if (cycleSec === 31 && latestAdminCheat && latestAdminCheat.generatedBy === playerName) {
+                    adminCheatRef.set(null);
                 }
             }
         }, 1000);
