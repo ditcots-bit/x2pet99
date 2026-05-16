@@ -3,44 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bộ Đếm Thời Gian Server Bầu Cua - ThinhDZ</title>
+    <title>Sảnh Cược Bầu Cua Online - ThinhDZ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background: #0f111a; color: #fff; font-family: 'Segoe UI', sans-serif; padding: 40px 20px; }
-        .server-box { max-width: 600px; margin: auto; background: #161925; border: 2px solid #1f2336; border-radius: 12px; padding: 30px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-        .status-badge { font-size: 1.2rem; font-weight: bold; padding: 8px 16px; border-radius: 6px; text-transform: uppercase; display: inline-block; margin-bottom: 20px; }
-        .state-SHAKING { background: #e67e22; color: #fff; }
-        .state-BETTING { background: #2e7d32; color: #fff; }
-        .state-LOCKED { background: #7f8c8d; color: #fff; }
-        .state-RESULT { background: #1565c0; color: #fff; }
-        .timer-display { font-size: 5rem; font-weight: 900; color: #00ff00; font-family: monospace; margin: 20px 0; }
-        .dice-preview img { width: 60px; height: 60px; margin: 5px; border-radius: 8px; background: #fff; padding: 3px; border: 2px solid #ffd700; }
-        .log-console { background: #000; color: #00ff00; font-family: monospace; padding: 12px; border-radius: 6px; height: 120px; overflow-y: auto; text-align: left; font-size: 0.85rem; margin-top: 20px; border: 1px solid #333; }
+        :root { --primary-gold: #ffd700; --cell-bg: rgba(255, 255, 255, 0.1); }
+        
+        body { 
+            margin: 0; padding: 0; overflow-x: hidden; 
+            background: radial-gradient(circle, #2c3e50 0%, #000000 100%); 
+            color: white; font-family: 'Segoe UI', sans-serif; min-height: 100vh; 
+        }
+        
+        .game-container { 
+            min-height: 100vh; display: flex; flex-direction: column; 
+            justify-content: space-between; max-width: 1200px; margin: auto; 
+        }
+        
+        header { 
+            padding: 15px 30px; display: flex; justify-content: space-between; 
+            align-items: center; background: rgba(0,0,0,0.6); 
+            border-bottom: 1px solid rgba(255,215,0,0.1);
+            border-radius: 0 0 15px 15px;
+        }
+        
+        #statusGame { color: var(--primary-gold); font-weight: bold; text-transform: uppercase; font-size: 1.1rem; letter-spacing: 1px; }
+        
+        .btn-taixiu {
+            background: linear-gradient(135deg, #d32f2f, #9a0007);
+            color: #fff;
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            font-weight: 800;
+            font-size: 0.85rem;
+            padding: 8px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: 0.2s;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+            letter-spacing: 0.5px;
+        }
+        .btn-taixiu:hover {
+            background: linear-gradient(135deg, #f44336, #b71c1c);
+            color: #fff;
+            border-color: var(--primary-gold);
+            box-shadow: 0 0 12px rgba(244, 67, 54, 0.6);
+            transform: translateY(-1px);
+        }
+
+        main {
+            display: flex; align-items: flex-start; justify-content: center;
+            padding: 20px; gap: 30px; flex-wrap: wrap;
+        }
+        
+        /* KHU VỰC ĐĨA BÁT */
+        .dice-area { 
+            flex: 1; min-width: 350px; max-width: 420px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .table-wrapper { position: relative; width: 340px; height: 340px; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); border-radius: 50%; }
+        #caidia { width: 100%; z-index: 1; filter: drop-shadow(0 10px 25px #000); position: absolute; }
+        
+        .xucxac-result { position: absolute; z-index: 2; display: flex; gap: 8px; justify-content: center; align-items: center; width: 100%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .xx-img { width: 52px; height: 52px; border-radius: 8px; background: white; padding: 2px; box-shadow: 0 4px 10px rgba(0,0,0,0.8); }
+        
+        #caito { width: 330px; z-index: 10; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scaleY(-1); transition: transform 0.8s cubic-bezier(0.5, -0.5, 0.5, 1.5); filter: drop-shadow(0 15px 30px rgba(0,0,0,0.9)); }
+        
+        #gameTimer { 
+            position: absolute; z-index: 11; 
+            font-size: 2.5rem; font-weight: 900; 
+            color: #ff3333; text-shadow: 0 0 10px #000, 0 0 20px #000;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            pointer-events: none; transition: opacity 0.3s ease;
+        }
+        
+        @keyframes shake { 0% { transform: translate(-50%, -50%) scaleY(-1) rotate(0deg); } 25% { transform: translate(-52%, -52%) scaleY(-1) rotate(3deg); } 50% { transform: translate(-48%, -48%) scaleY(-1) rotate(-3deg); } 100% { transform: translate(-50%, -50%) scaleY(-1) rotate(0deg); } }
+        .lac-animation { animation: shake 0.1s infinite; }
+        .mo-nap { transform: translate(120%, -120%) scaleY(1) rotate(45deg) !important; opacity: 0.8; pointer-events: none; }
+
+        /* BÀN CƯỢC */
+        .right-area { flex: 1.2; display: flex; flex-direction: column; gap: 15px; min-width: 350px; max-width: 650px; width: 100%; }
+        .chip-wrapper { display: flex; gap: 10px; justify-content: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,215,0,0.1); }
+        .chip-btn { background: #222; border: 2px solid #555; color: white; font-weight: 800; font-size: 0.95rem; padding: 8px 20px; border-radius: 20px; cursor: pointer; transition: 0.2s; min-width: 90px; box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
+        .chip-btn.active-chip { background: linear-gradient(135deg, #ffeb3b, #fbc02d); color: #000; border-color: var(--primary-gold); box-shadow: 0 0 12px var(--primary-gold); }
+        .btn-allin { background: linear-gradient(135deg, #ff3333, #990000) !important; color: white !important; border-color: #ff6666 !important; }
+        .btn-allin.active-chip { border-color: #fff !important; box-shadow: 0 0 15px #ff3333 !important; }
+
+        .bet-table { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; }
+        .cell_chess { position: relative; background: var(--cell-bg); border: 2px solid rgba(255,215,0,0.15); border-radius: 12px; padding: 12px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .cell_chess:hover { background: rgba(255, 255, 255, 0.15); border-color: rgba(255,215,0,0.4); }
+        .cell_chess:active { transform: scale(0.96); }
+        .cell_chess img { width: 100%; max-width: 80px; object-fit: contain; }
+        
+        .count_coin_order { position: absolute; top: -6px; right: -6px; background: linear-gradient(135deg, #ffeb3b, #fbc02d); color: #000; border-radius: 8px; min-width: 28px; height: 24px; font-weight: 800; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; padding: 0 6px; box-shadow: 0 3px 6px rgba(0,0,0,0.5); }
+        .my_bet_label { position: absolute; bottom: 2px; font-size: 0.7rem; color: #00ff00; font-weight: bold; background: rgba(0,0,0,0.6); padding: 0px 5px; border-radius: 4px; }
+
+        /* BẢNG LỊCH SỬ CƯỢC PHÒNG CHUẨN */
+        .bet-log-container { margin-top: 10px; background: #1a1a1a; border-radius: 15px; border: 1px solid #333; overflow: hidden; width: 100%; }
+        .bet-log-header { background: #252525; padding: 10px 15px; font-size: 11px; font-weight: bold; color: #888; border-bottom: 1px solid #333; display: flex; justify-content: space-between; }
+        #bet-log-list { height: 160px; overflow-y: auto; padding: 5px 12px; font-size: 13px; }
+        .log-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #222; }
+        .log-user-info { display: flex; flex-direction: column; flex: 1; }
+        .log-name { color: #aaa; font-size: 11px; text-align: left; display: flex; gap: 5px; align-items: center; }
+        .log-time { color: #555; font-size: 10px; }
+        .log-choice { font-weight: bold; color: #fff; font-size: 13px; text-align: left; text-transform: uppercase; }
+        .log-val-wait { color: #f1c40f; font-weight: bold; } 
+        .log-val-win { color: #2ecc71; font-weight: bold; } 
+        .log-val-lose { color: #e74c3c; font-weight: bold; opacity: 0.8; }
+
+        footer { background: #111; padding: 12px 40px; border-top: 2px solid var(--primary-gold); border-radius: 15px 15px 0 0; }
+        .win-effect { animation: winPulse 0.5s infinite; border-color: var(--primary-gold); box-shadow: 0 0 20px var(--primary-gold); }
+        @keyframes winPulse { 0%, 100% { background: rgba(255,215,0,0.15); } 50% { background: rgba(255,215,0,0.45); } }
     </style>
 </head>
 <body>
 
-    <div class="server-box text-center">
-        <h2 class="text-warning mb-4">⚙️ BẦU CUA SERVER HOST</h2>
-        <p class="text-secondary">Hãy treo tab này để tự động đếm giây và đồng bộ ván đấu cho tất cả người chơi.</p>
-        
-        <hr style="border-color: #2c314d;">
+    <div class="game-container">
+        <header>
+            <div id="statusGame">ĐANG ĐỒNG BỘ VỚI PHÒNG CHUNG...</div>
+            <a href="giaodien.html" class="btn-taixiu">⚔️ QUAY LẠI TÀI XỈU</a>
+        </header>
 
-        <div id="statusBadge" class="status-badge state-SHAKING">ĐANG KHỞI ĐỘNG...</div>
-        
-        <div class="text-secondary">Giây hệ thống:</div>
-        <div id="countdown" class="timer-display">01</div>
-
-        <div class="mt-3">
-            <h5 class="text-info">🎲 Xúc xắc ván này:</h5>
-            <div id="dicePreview" class="dice-preview">
-                <span class="text-muted">Đang trong phiên cược...</span>
+        <main>
+            <div class="dice-area">
+                <div class="table-wrapper">
+                    <img src="img/caidia.png" id="caidia">
+                    <div class="xucxac-result">
+                        <img src="img/bau.png" class="xx-img" id="res1">
+                        <img src="img/cua.png" class="xx-img" id="res2">
+                        <img src="img/tom.png" class="xx-img" id="res3">
+                    </div>
+                    <img src="img/CAITO.png" id="caito">
+                    <div id="gameTimer">00</div>
+                </div>
             </div>
-        </div>
 
-        <div class="log-console" id="logConsole">
-            [SYSTEM]: Máy chủ bầu cua đã sẵn sàng...<br>
-        </div>
+            <div class="right-area">
+                <div class="chip-wrapper">
+                    <button class="chip-btn active-chip" onclick="selectChip(10000000, this)">10M</button>
+                    <button class="chip-btn" onclick="selectChip(100000000, this)">100M</button>
+                    <button class="chip-btn" onclick="selectChip(500000000, this)">500M</button>
+                    <button class="chip-btn btn-allin" onclick="clickAllIn(this)">ALL-IN</button>
+                </div>
+
+                <div class="bet-table">
+                    <div class="cell_chess" data-type="nai" onclick="datCuoc('nai')"><img src="img/nai.png"><div class="count_coin_order" id="bet_nai">0</div><div class="my_bet_label" id="my_nai">Bạn: 0</div></div>
+                    <div class="cell_chess" data-type="bau" onclick="datCuoc('bau')"><img src="img/bau.png"><div class="count_coin_order" id="bet_bau">0</div><div class="my_bet_label" id="my_bau">Bạn: 0</div></div>
+                    <div class="cell_chess" data-type="ga" onclick="datCuoc('ga')"><img src="img/ga.png"><div class="count_coin_order" id="bet_ga">0</div><div class="my_bet_label" id="my_ga">Bạn: 0</div></div>
+                    <div class="cell_chess" data-type="ca" onclick="datCuoc('ca')"><img src="img/ca.png"><div class="count_coin_order" id="bet_ca">0</div><div class="my_bet_label" id="my_ca">Bạn: 0</div></div>
+                    <div class="cell_chess" data-type="cua" onclick="datCuoc('cua')"><img src="img/cua.png"><div class="count_coin_order" id="bet_cua">0</div><div class="my_bet_label" id="my_cua">Bạn: 0</div></div>
+                    <div class="cell_chess" data-type="tom" onclick="datCuoc('tom')"><img src="img/tom.png"><div class="count_coin_order" id="bet_tom">0</div><div class="my_bet_label" id="my_tom">Bạn: 0</div></div>
+                </div>
+
+                <div class="bet-log-container">
+                    <div class="bet-log-header">
+                        <span>📜 LỊCH SỬ CƯỢC PHÒNG</span>
+                        <span>THỜI GIAN</span>
+                    </div>
+                    <div id="bet-log-list"></div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <img src="https://api.dicebear.com/7.x/bottts/svg?seed=ThinhDZ" style="width: 40px; height: 40px; border: 2px solid gold; border-radius: 50%;">
+                    <div class="ms-2">
+                        <div class="fw-bold" id="playerName">...</div>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div id="tongGems" class="fw-bold text-warning" style="font-size: 1.3rem;">0</div>
+                    <div style="font-size: 0.75rem; color: #aaa;">GEMS CỦA BẠN</div>
+                </div>
+            </div>
+        </footer>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -53,115 +188,241 @@
             projectId: "taixiupet99",
             databaseURL: "https://taixiupet99-default-rtdb.firebaseio.com"
         };
-        
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        const serverSystemRef = database.ref('baucua_server');
+        const playerName = localStorage.getItem("userRoblox");
+        if (!playerName) { window.location.href = "giaodien.html"; }
+
+        const userRef = database.ref('users/' + playerName);
         const roomBetRef = database.ref('baucua_room/bets');
         const liveBetsRef = database.ref('baucua_room/liveBets');
+        
+        // ĐƯỜNG DẪN ĐỒNG BỘ THỜI GIAN VÀ TRẠNG THÁI TỪ SERVER TIMEBAUCUACA
+        const serverSystemRef = database.ref('baucua_server');
 
+        let selectedBetAmount = 10000000;
+        let isAllInMode = false;
+        let currentGems = 0;
+        
+        let currentState = "WAITING"; 
+        let uniqueBetsChosen = [];
+        let myCurrentBets = { nai: 0, bau: 0, ga: 0, ca: 0, cua: 0, tom: 0 };
+        let lastBetTime = 0;
+        let rewardedThisMatch = false;
         const linhVat = ['nai', 'bau', 'ga', 'ca', 'cua', 'tom'];
-        let giay = 0; 
-        let currentDiceResult = [];
 
-        function writeLog(text) {
-            const consoleEl = document.getElementById('logConsole');
-            const time = new Date().toLocaleTimeString();
-            consoleEl.innerHTML += `[${time}] ${text}<br>`;
-            consoleEl.scrollTop = consoleEl.scrollHeight;
+        // Đồng bộ tiền cược toàn phòng
+        roomBetRef.on('value', snap => {
+            const bets = snap.val() || {};
+            linhVat.forEach(type => {
+                const totalAmount = bets[type] || 0;
+                document.getElementById('bet_' + type).innerText = totalAmount.toLocaleString();
+            });
+        });
+
+        // Đồng bộ ví Gems của người chơi
+        userRef.on('value', snap => {
+            const data = snap.val();
+            if (data) {
+                currentGems = data.gems || 0;
+                document.getElementById('tongGems').innerText = currentGems.toLocaleString();
+                document.getElementById('playerName').innerText = playerName.toUpperCase();
+            }
+        });
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.getHours().toString().padStart(2, '0') + ":" + 
+                   date.getMinutes().toString().padStart(2, '0') + ":" + 
+                   date.getSeconds().toString().padStart(2, '0');
         }
 
-        setInterval(() => {
-            giay++;
-            if (giay > 30) giay = 1; // Vòng lặp chuẩn từ 1 đến 30 giây
+        // Lịch sử cược phòng
+        liveBetsRef.limitToLast(15).on('value', snap => {
+            const list = document.getElementById("bet-log-list");
+            const data = snap.val();
+            if (!data) { list.innerHTML = ""; return; }
+            list.innerHTML = "";
+            Object.values(data).reverse().forEach(log => {
+                const item = document.createElement("div");
+                item.className = "log-item";
+                let statusClass = log.status === 'win' ? "log-val-win" : (log.status === 'lose' ? "log-val-lose" : "log-val-wait");
+                let valText = log.status === 'win' ? "+" + Math.floor(log.amount * 1.9).toLocaleString() : log.amount.toLocaleString();
 
-            let state = "BETTING";
-            let displaySec = giay;
-
-            // Xác định trạng thái chuẩn theo giây chạy xuôi
-            if (giay >= 1 && giay <= 2) {
-                state = "SHAKING";
-                displaySec = giay;
-            } else if (giay >= 3 && giay <= 22) {
-                state = "BETTING";
-                displaySec = 23 - giay; // Hiển thị đếm ngược từ 20 về 1 cho người chơi dễ nhìn
-            } else if (giay >= 23 && giay <= 24) {
-                state = "LOCKED";
-                displaySec = 0;
-            } else if (giay >= 25 && giay <= 30) {
-                state = "RESULT";
-                displaySec = 31 - giay; // Thời gian chờ xem kết quả (Đếm ngược từ 6 về 1)
-            }
-
-            // Cập nhật giao diện Admin Server
-            const badge = document.getElementById('statusBadge');
-            const countdownEl = document.getElementById('countdown');
-            countdownEl.innerText = displaySec < 10 ? "0" + displaySec : displaySec;
-
-            badge.className = "status-badge state-" + state;
-            if (state === "SHAKING") {
-                badge.innerText = "Nhà cái đang xóc đĩa";
-                countdownEl.style.color = "#e67e22";
-            } else if (state === "BETTING") {
-                badge.innerText = "Thời gian đặt cược";
-                countdownEl.style.color = "#00ff00";
-            } else if (state === "LOCKED") {
-                badge.innerText = "Đã khóa cửa cược";
-                countdownEl.style.color = "#7f8c8d";
-            } else if (state === "RESULT") {
-                badge.innerText = "Đang mở bát kết quả";
-                countdownEl.style.color = "#33b3ff";
-            }
-
-            // --- LOGIC XỬ LÝ DATABASE THEO GIÂY CHUẨN ---
-
-            // Mốc 1: Vừa sang giây thứ 1 ván mới -> Dọn dẹp bàn cược
-            if (giay === 1) {
-                roomBetRef.set({ nai: 0, bau: 0, ga: 0, ca: 0, cua: 0, tom: 0 });
-                liveBetsRef.set(null);
-                document.getElementById('dicePreview').innerHTML = `<span class="text-muted">Đang trong phiên cược...</span>`;
-                writeLog("🧹 Bắt đầu ván mới. Đã dọn sạch tiền cược phòng.");
-            }
-
-            // Mốc 2: Vừa hết thời gian cược (Giây thứ 23) -> Khóa cược công khai và Server lắc kết quả sẵn
-            if (giay === 23) {
-                let d1 = linhVat[Math.floor(Math.random() * 6)];
-                let d2 = linhVat[Math.floor(Math.random() * 6)];
-                let d3 = linhVat[Math.floor(Math.random() * 6)];
-                currentDiceResult = [d1, d2, d3];
-
-                // Đẩy kết quả và đổi trạng thái sang LOCKED
-                serverSystemRef.update({
-                    state: "LOCKED",
-                    currentSecond: 0,
-                    dices: currentDiceResult
-                });
-                writeLog(`🎲 Server đã chốt xong kết quả: ${d1} - ${d2} - ${d3}`);
-            }
-            // Mốc 3: Đến giây thứ 25 -> Ra lệnh mở bát, hiển thị xúc xắc cho người chơi xem 5 giây liền
-            else if (giay === 25) {
-                const previewEl = document.getElementById('dicePreview');
-                previewEl.innerHTML = `
-                    <img src="img/${currentDiceResult[0]}.png">
-                    <img src="img/${currentDiceResult[1]}.png">
-                    <img src="img/${currentDiceResult[2]}.png">
+                item.innerHTML = `
+                    <div class="log-user-info">
+                        <span class="log-name">${log.user} <span class="log-time">${formatTime(log.time || Date.now())}</span></span>
+                        <span class="log-choice">Cược: ${log.choice.toUpperCase()}</span>
+                    </div>
+                    <div class="${statusClass}">${valText}</div>
                 `;
-                serverSystemRef.update({
-                    state: "RESULT",
-                    currentSecond: displaySec
-                });
-                writeLog(`💥 Đã mở bát công khai kết quả ván đấu!`);
+                list.appendChild(item);
+            });
+        });
+
+        window.selectChip = function(amount, element) {
+            selectedBetAmount = amount; isAllInMode = false;
+            document.querySelectorAll('.chip-btn').forEach(btn => btn.classList.remove('active-chip'));
+            element.classList.add('active-chip');
+        }
+
+        window.clickAllIn = function(element) {
+            if (currentState !== "BETTING" || currentGems <= 0) return;
+            if (uniqueBetsChosen.length === 0) {
+                isAllInMode = true;
+                document.querySelectorAll('.chip-btn').forEach(btn => btn.classList.remove('active-chip'));
+                element.classList.add('active-chip');
+                return;
             }
-            // Các giây khác chỉ cập nhật số giây bình thường
-            else {
-                serverSystemRef.update({
-                    state: state,
-                    currentSecond: displaySec
-                });
+            executeAllInAction();
+        }
+
+        function executeAllInAction() {
+            if (uniqueBetsChosen.length === 0 || currentGems <= 0) return;
+            const totalGemsToBet = currentGems;
+            const splitCount = uniqueBetsChosen.length;
+            const gemsPerSlot = Math.floor(totalGemsToBet / splitCount);
+
+            userRef.child('gems').set(currentGems - totalGemsToBet);
+
+            uniqueBetsChosen.forEach(type => {
+                myCurrentBets[type] += gemsPerSlot;
+                document.getElementById('my_' + type).innerText = `Bạn: ${myCurrentBets[type].toLocaleString()}`;
+                roomBetRef.child(type).transaction(current => (current || 0) + gemsPerSlot);
+                liveBetsRef.push({ user: playerName, amount: gemsPerSlot, choice: type, status: 'waiting', time: Date.now() });
+            });
+
+            isAllInMode = false;
+            document.querySelectorAll('.chip-btn').forEach(btn => btn.classList.remove('active-chip'));
+            document.querySelector('.chip-btn[onclick*="10000000,"]').classList.add('active-chip');
+            selectedBetAmount = 10000000;
+        }
+
+        window.datCuoc = function(type) {
+            if (currentState !== "BETTING") return; // KHÓA CƯỢC KHI KHÔNG PHẢI TRẠNG THÁI ĐẶT CƯỢC
+            const currentTime = new Date().getTime();
+            if (currentTime - lastBetTime < 300) return; 
+
+            if (!uniqueBetsChosen.includes(type)) {
+                if (uniqueBetsChosen.length >= 2) return; 
+                uniqueBetsChosen.push(type);
             }
 
-        }, 1000);
+            if (isAllInMode) {
+                lastBetTime = currentTime;
+                executeAllInAction();
+                return;
+            }
+
+            if (currentGems < selectedBetAmount) return;
+
+            lastBetTime = currentTime;
+            userRef.child('gems').set(currentGems - selectedBetAmount);
+            
+            myCurrentBets[type] += selectedBetAmount;
+            document.getElementById('my_' + type).innerText = `Bạn: ${myCurrentBets[type].toLocaleString()}`;
+            
+            roomBetRef.child(type).transaction(current => (current || 0) + selectedBetAmount);
+            liveBetsRef.push({ user: playerName, amount: selectedBetAmount, choice: type, status: 'waiting', time: Date.now() });
+        }
+
+        // ⚡ TRÁI TIM MỚI: LẮNG NGHE DỮ LIỆU ĐỒNG BỘ TUYỆT ĐỐI TỪ SERVER TIMEBAUCUACA.HTML
+        serverSystemRef.on('value', snap => {
+            const serverData = snap.val();
+            if (!serverData) return;
+
+            const bat = document.getElementById('caito');
+            const txtStatus = document.getElementById('statusGame');
+            const txtTimer = document.getElementById('gameTimer');
+
+            let serverSec = serverData.currentSecond;
+            let serverState = serverData.state; // WAITING, BETTING, RESULT
+            let results = serverData.dices || ['bau', 'cua', 'tom'];
+
+            currentState = serverState; // Cập nhật trạng thái cục bộ theo server
+
+            // --- GIAI ĐOẠN CHUẨN BỊ VÀ XÓC ĐĨA ---
+            if (serverState === "WAITING") {
+                bat.classList.remove('mo-nap');
+                
+                // Hiển thị hiệu ứng xóc đĩa khi bắt đầu chu kỳ giây lớn
+                if (serverSec === 30 || serverSec === 29) {
+                    bat.classList.add('lac-animation');
+                    txtStatus.innerText = "NHÀ CÁI ĐANG XÓC ĐĨA... NGHIÊM CẤM ĐẶT CƯỢC!";
+                } else {
+                    bat.classList.remove('lac-animation');
+                    txtStatus.innerText = "CHUẨN BỊ BẮT ĐẦU VÁN MỚI...";
+                }
+
+                // Reset giao diện cược khi server sang giây đầu của ván mới (Giây 30 hoặc 29)
+                if (serverSec >= 29) {
+                    rewardedThisMatch = false;
+                    uniqueBetsChosen = [];
+                    myCurrentBets = { nai: 0, bau: 0, ga: 0, ca: 0, cua: 0, tom: 0 };
+                    linhVat.forEach(t => {
+                        document.getElementById('my_' + t).innerText = "Bạn: 0";
+                    });
+                    document.querySelectorAll('.cell_chess').forEach(el => el.classList.remove('win-effect'));
+                }
+
+                txtTimer.style.opacity = "1";
+                txtTimer.style.color = "#ffcc00";
+                txtTimer.innerText = "XX";
+            }
+            
+            // --- GIAI ĐOẠN ĐẶT CƯỢC ---
+            else if (serverState === "BETTING") {
+                bat.classList.remove('lac-animation');
+                bat.classList.remove('mo-nap');
+                
+                txtTimer.style.opacity = "1";
+                txtTimer.style.color = "#00ff00";
+                txtTimer.innerText = serverSec < 10 ? "0" + serverSec : serverSec;
+                txtStatus.innerText = "MỜI ĐẶT CƯỢC TRỰC TUYẾN (TỐI ĐA 2 Ô)!";
+            }
+            
+            // --- GIAI ĐOẠN KHUI KẾT QUẢ & TRẢ THƯỞNG ---
+            else if (serverState === "RESULT") {
+                bat.classList.remove('lac-animation');
+                bat.classList.add('mo-nap'); // Mở bát ra
+                
+                txtTimer.style.opacity = "0";
+                txtStatus.innerText = "XEM KẾT QUẢ VÁN ĐẤU...";
+
+                // Hiển thị ngay 3 hình xúc xắc chuẩn từ Server
+                document.getElementById('res1').src = `img/${results[0]}.png`;
+                document.getElementById('res2').src = `img/${results[1]}.png`;
+                document.getElementById('res3').src = `img/${results[2]}.png`;
+
+                // Sáng đèn các ô trúng thưởng
+                let counts = {};
+                results.forEach(res => {
+                    counts[res] = (counts[res] || 0) + 1;
+                    const cell = document.querySelector(`[data-type="${res}"]`);
+                    if (cell) cell.classList.add('win-effect');
+                });
+
+                // Thực hiện tính tiền thưởng chính xác 1 lần duy nhất theo Data Server
+                if (!rewardedThisMatch) {
+                    rewardedThisMatch = true;
+                    
+                    let totalWinGems = 0;
+                    for (let key in myCurrentBets) {
+                        if (myCurrentBets[key] > 0 && counts[key]) {
+                            totalWinGems += (myCurrentBets[key] * counts[key]) * 1.9; 
+                        }
+                    }
+
+                    if (totalWinGems > 0) {
+                        userRef.child('gems').set(currentGems + totalWinGems);
+                        txtStatus.innerText = `💥 BẠN ĐÃ THẮNG +${Math.floor(totalWinGems).toLocaleString()} GEMS!`;
+                    } else {
+                        txtStatus.innerText = "HẾT GIỜ! CHÚC BẠN MAY MẮN VÁN SAU.";
+                    }
+                }
+            }
+        });
     </script>
 </body>
 </html>
