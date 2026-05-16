@@ -69,7 +69,7 @@
         #gameTimer { 
             position: absolute; z-index: 11; 
             font-size: 2.5rem; font-weight: 900; 
-            color: #ff3333; text-shadow: 0 0 10px #000, 0 0 20px #000;
+            color: #00ff00; text-shadow: 0 0 10px #000, 0 0 20px #000;
             top: 50%; left: 50%; transform: translate(-50%, -50%);
             pointer-events: none; transition: opacity 0.3s ease;
         }
@@ -191,8 +191,7 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        const playerName = localStorage.getItem("userRoblox");
-        if (!playerName) { window.location.href = "giaodien.html"; }
+        const playerName = localStorage.getItem("userRoblox") || "ThinhDZ";
 
         const userRef = database.ref('users/' + playerName);
         const roomBetRef = database.ref('baucua_room/bets');
@@ -203,24 +202,15 @@
         let isAllInMode = false;
         let currentGems = 0;
         
-        let currentState = "WAITING"; 
+        let currentState = "SHAKING"; 
         let uniqueBetsChosen = [];
         let myCurrentBets = { nai: 0, bau: 0, ga: 0, ca: 0, cua: 0, tom: 0 };
         let lastBetTime = 0;
         let rewardedThisMatch = false;
-        let hasResetInterface = false; // Cờ chặn việc lặp reset giao diện ván mới
+        let hasResetInterface = false; 
         const linhVat = ['nai', 'bau', 'ga', 'ca', 'cua', 'tom'];
 
-        // Đồng bộ tổng tiền cược của toàn phòng
-        roomBetRef.on('value', snap => {
-            const bets = snap.val() || {};
-            linhVat.forEach(type => {
-                const totalAmount = bets[type] || 0;
-                document.getElementById('bet_' + type).innerText = totalAmount.toLocaleString();
-            });
-        });
-
-        // Đồng bộ số tiền Gems cá nhân thực tế
+        // Đồng bộ ví Gems cá nhân
         userRef.on('value', snap => {
             const data = snap.val();
             if (data) {
@@ -230,6 +220,15 @@
             }
         });
 
+        // Đồng bộ tổng tiền đặt cược phòng
+        roomBetRef.on('value', snap => {
+            const bets = snap.val() || {};
+            linhVat.forEach(type => {
+                const totalAmount = bets[type] || 0;
+                document.getElementById('bet_' + type).innerText = totalAmount.toLocaleString();
+            });
+        });
+
         function formatTime(timestamp) {
             const date = new Date(timestamp);
             return date.getHours().toString().padStart(2, '0') + ":" + 
@@ -237,7 +236,7 @@
                    date.getSeconds().toString().padStart(2, '0');
         }
 
-        // Lịch sử cược phòng chung hiển thị thời gian thực
+        // Đồng bộ lịch sử phòng cược
         liveBetsRef.limitToLast(15).on('value', snap => {
             const list = document.getElementById("bet-log-list");
             const data = snap.val();
@@ -326,7 +325,7 @@
             liveBetsRef.push({ user: playerName, amount: selectedBetAmount, choice: type, status: 'waiting', time: Date.now() });
         }
 
-        // ⚡ TRÁI TIM ĐỒNG BỘ: XỬ LÝ LOẠI BỎ TOÀN BỘ LỖI LỆCH TRẠNG THÁI TỪ SERVER ĐẾM NGƯỢC
+        // 🔄 ĐỒNG BỘ THỜI GIAN THEO LÝ TRÌNH CỦA ADMIN CONTROL (SHAKING -> BETTING -> RESULT)
         serverSystemRef.on('value', snap => {
             const serverData = snap.val();
             if (!serverData) return;
@@ -335,25 +334,25 @@
             const txtStatus = document.getElementById('statusGame');
             const txtTimer = document.getElementById('gameTimer');
 
-            let serverSec = serverData.currentSecond;
-            let serverState = serverData.state; 
+            let giay = parseInt(serverData.currentSecond, 10) || 0;
+            let trangThai = serverData.state || "SHAKING"; 
             let results = serverData.dices || ['bau', 'cua', 'tom'];
 
-            currentState = serverState; 
+            currentState = trangThai; 
 
-            // --- GIAI ĐOẠN CHUẨN BỊ VÀ LẮC BÁT ---
-            if (serverState === "WAITING") {
+            // Cập nhật số giây hiển thị liên tục lên đĩa bát
+            let formatGiay = giay < 10 ? "0" + giay : giay;
+            txtTimer.innerText = formatGiay;
+
+            // --- 1. TRẠNG THÁI SHAKING (ĐANG LẮC) ---
+            if (trangThai === "SHAKING") {
                 bat.classList.remove('mo-nap');
-                
-                if (serverSec === 30 || serverSec === 29) {
-                    bat.classList.add('lac-animation');
-                    txtStatus.innerText = "NHÀ CÁI ĐANG XÓC ĐĨA... NGHIÊM CẤM ĐẶT CƯỢC!";
-                } else {
-                    bat.classList.remove('lac-animation');
-                    txtStatus.innerText = "CHUẨN BỊ BẮT ĐẦU VÁN MỚI...";
-                }
+                bat.classList.add('lac-animation');
+                txtTimer.style.opacity = "1";
+                txtTimer.style.color = "#ffcc00"; // Màu vàng cảnh báo đang lắc
+                txtStatus.innerText = "HỆ THỐNG ĐANG LẮC XÚC XẮC... CHƯA MỞ CƯỢC!";
 
-                // 🔄 THỰC HIỆN DỌN SẠCH GIAO DIỆN CƯỢC KHI BẮT ĐẦU VÁN MỚI
+                // Reset giao diện chuẩn bị ván mới
                 if (!hasResetInterface) {
                     hasResetInterface = true;
                     rewardedThisMatch = false;
@@ -365,64 +364,57 @@
                     });
                     document.querySelectorAll('.cell_chess').forEach(el => el.classList.remove('win-effect'));
                 }
-
-                txtTimer.style.opacity = "1";
-                txtTimer.style.color = "#ffcc00";
-                txtTimer.innerText = "XX";
             }
             
-            // --- GIAI ĐOẠN ĐẶT CƯỢC ---
-            else if (serverState === "BETTING") {
+            // --- 2. TRẠNG THÁI BETTING (ĐANG ĐẶT CƯỢC) ---
+            else if (trangThai === "BETTING") {
                 bat.classList.remove('lac-animation');
                 bat.classList.remove('mo-nap');
-                hasResetInterface = false; // Mở lại cờ để chuẩn bị dọn dẹp cho ván sau nữa
-
+                hasResetInterface = false; 
                 txtTimer.style.opacity = "1";
-                txtTimer.style.color = "#00ff00";
-                txtTimer.innerText = serverSec < 10 ? "0" + serverSec : serverSec;
-                txtStatus.innerText = "MỜI ĐẶT CƯỢC TRỰC TUYẾN (TỐI ĐA 2 Ô)!";
+
+                if (giay >= 8) {
+                    txtTimer.style.color = "#00ff00"; // Còn nhiều thời gian màu xanh lá
+                    txtStatus.innerText = "MỜI ĐẶT CƯỢC TRỰC TUYẾN (TỐI ĐA 2 Ô)!";
+                } else {
+                    txtTimer.style.color = "#ff3333"; // Dưới 8 giây chuyển sang màu đỏ báo sắp khóa cầu
+                    txtStatus.innerText = "⚠️ SẮP KHÓA CẦU! DỪNG CHỈNH CẦU HỆ THỐNG!";
+                }
             }
             
-            // --- GIAI ĐOẠN KHUI KẾT QUẢ & TRAO THƯỞNG ---
-            else if (serverState === "RESULT") {
+            // --- 3. TRẠNG THÁI RESULT (ĐANG XEM KẾT QUẢ) ---
+            else if (trangThai === "RESULT") {
                 bat.classList.remove('lac-animation');
-                bat.classList.add('mo-nap'); // Mở bát hiển thị kết quả
+                bat.classList.add('mo-nap'); // Mở nắp cối ra ngoài
                 hasResetInterface = false;
+                txtTimer.style.opacity = "0"; // Ẩn đồng hồ để nhìn rõ kết quả xúc xắc
 
-                txtTimer.style.opacity = "0";
-
-                // Hiển thị chuẩn xác 3 hình xúc xắc do Server trả về
+                // Hiển thị ảnh xúc xắc kết quả
                 document.getElementById('res1').src = `img/${results[0]}.png`;
                 document.getElementById('res2').src = `img/${results[1]}.png`;
                 document.getElementById('res3').src = `img/${results[2]}.png`;
 
-                // Đếm số lượng xuất hiện của linh vật trúng thưởng để kích hoạt viền sáng
+                // Tạo hiệu ứng nhấp nháy vàng các ô trúng giải
                 let counts = {};
-                results.forEach(res => {
-                    counts[res] = (counts[res] || 0) + 1;
-                });
+                results.forEach(res => { counts[res] = (counts[res] || 0) + 1; });
 
-                // Xóa viền cũ trước rồi kích hoạt lại viền sáng xanh cho các ô thắng
                 document.querySelectorAll('.cell_chess').forEach(el => el.classList.remove('win-effect'));
                 for (let res in counts) {
                     const cell = document.querySelector(`[data-type="${res}"]`);
                     if (cell) cell.classList.add('win-effect');
                 }
 
-                // 💥 TÍNH TOÁN TIỀN THƯỞNG DUY NHẤT 1 LẦN (Chặn hoàn toàn lỗi cộng lặp)
+                // Xử lý cộng thưởng tiền vàng (chỉ chạy duy nhất 1 lần để tránh lặp hàm)
                 if (!rewardedThisMatch) {
                     rewardedThisMatch = true;
-                    
                     let totalWinGems = 0;
                     for (let key in myCurrentBets) {
                         if (myCurrentBets[key] > 0 && counts[key]) {
-                            // Tiền thưởng = (Tiền đặt gốc x Số mặt xúc xắc nổ) x 1.9 hệ số trả thưởng
                             totalWinGems += (myCurrentBets[key] * counts[key]) * 1.9; 
                         }
                     }
 
                     if (totalWinGems > 0) {
-                        // Cộng tiền trực tiếp lên cơ sở dữ liệu Firebase
                         userRef.child('gems').set(currentGems + totalWinGems);
                         txtStatus.innerText = `💥 BẠN ĐÃ THẮNG +${Math.floor(totalWinGems).toLocaleString()} GEMS!`;
                     } else {
