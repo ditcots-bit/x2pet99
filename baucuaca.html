@@ -117,7 +117,7 @@
 
     <div class="game-container">
         <header>
-            <div id="statusGame">ĐANG ĐỒNG BỘ VỚI PHÒNG CHUNG...</div>
+            <div id="statusGame">ĐỒNG BỘ...</div>
             <a href="giaodien.html" class="btn-taixiu">⚔️ QUAY LẠI TÀI XỈU</a>
         </header>
 
@@ -210,7 +210,6 @@
         let hasResetInterface = false; 
         const linhVat = ['nai', 'bau', 'ga', 'ca', 'cua', 'tom'];
 
-        // Đồng bộ ví Gems cá nhân
         userRef.on('value', snap => {
             const data = snap.val();
             if (data) {
@@ -220,7 +219,6 @@
             }
         });
 
-        // Đồng bộ tổng tiền đặt cược phòng
         roomBetRef.on('value', snap => {
             const bets = snap.val() || {};
             linhVat.forEach(type => {
@@ -236,7 +234,6 @@
                    date.getSeconds().toString().padStart(2, '0');
         }
 
-        // Đồng bộ lịch sử phòng cược
         liveBetsRef.limitToLast(15).on('value', snap => {
             const list = document.getElementById("bet-log-list");
             const data = snap.val();
@@ -325,7 +322,6 @@
             liveBetsRef.push({ user: playerName, amount: selectedBetAmount, choice: type, status: 'waiting', time: Date.now() });
         }
 
-        // 🔄 ĐỒNG BỘ THỜI GIAN THEO LÝ TRÌNH CỦA ADMIN CONTROL (SHAKING -> BETTING -> RESULT)
         serverSystemRef.on('value', snap => {
             const serverData = snap.val();
             if (!serverData) return;
@@ -340,19 +336,16 @@
 
             currentState = trangThai; 
 
-            // Cập nhật số giây hiển thị liên tục lên đĩa bát
             let formatGiay = giay < 10 ? "0" + giay : giay;
             txtTimer.innerText = formatGiay;
 
-            // --- 1. TRẠNG THÁI SHAKING (ĐANG LẮC) ---
             if (trangThai === "SHAKING") {
                 bat.classList.remove('mo-nap');
                 bat.classList.add('lac-animation');
                 txtTimer.style.opacity = "1";
-                txtTimer.style.color = "#ffcc00"; // Màu vàng cảnh báo đang lắc
-                txtStatus.innerText = "HỆ THỐNG ĐANG LẮC XÚC XẮC... CHƯA MỞ CƯỢC!";
+                txtTimer.style.color = "#ffcc00";
+                txtStatus.innerText = "ĐANG LẮC";
 
-                // Reset giao diện chuẩn bị ván mới
                 if (!hasResetInterface) {
                     hasResetInterface = true;
                     rewardedThisMatch = false;
@@ -365,8 +358,6 @@
                     document.querySelectorAll('.cell_chess').forEach(el => el.classList.remove('win-effect'));
                 }
             }
-            
-            // --- 2. TRẠNG THÁI BETTING (ĐANG ĐẶT CƯỢC) ---
             else if (trangThai === "BETTING") {
                 bat.classList.remove('lac-animation');
                 bat.classList.remove('mo-nap');
@@ -374,27 +365,23 @@
                 txtTimer.style.opacity = "1";
 
                 if (giay >= 8) {
-                    txtTimer.style.color = "#00ff00"; // Còn nhiều thời gian màu xanh lá
-                    txtStatus.innerText = "MỜI ĐẶT CƯỢC TRỰC TUYẾN (TỐI ĐA 2 Ô)!";
+                    txtTimer.style.color = "#00ff00";
+                    txtStatus.innerText = "MỜI ĐẶT CƯỢC (TỐI ĐA 2 Ô)";
                 } else {
-                    txtTimer.style.color = "#ff3333"; // Dưới 8 giây chuyển sang màu đỏ báo sắp khóa cầu
-                    txtStatus.innerText = "⚠️ SẮP KHÓA CẦU! DỪNG CHỈNH CẦU HỆ THỐNG!";
+                    txtTimer.style.color = "#ff3333";
+                    txtStatus.innerText = "SẮP KHÓA CẦU";
                 }
             }
-            
-            // --- 3. TRẠNG THÁI RESULT (ĐANG XEM KẾT QUẢ) ---
             else if (trangThai === "RESULT") {
                 bat.classList.remove('lac-animation');
-                bat.classList.add('mo-nap'); // Mở nắp cối ra ngoài
+                bat.classList.add('mo-nap');
                 hasResetInterface = false;
-                txtTimer.style.opacity = "0"; // Ẩn đồng hồ để nhìn rõ kết quả xúc xắc
+                txtTimer.style.opacity = "0";
 
-                // Hiển thị ảnh xúc xắc kết quả
                 document.getElementById('res1').src = `img/${results[0]}.png`;
                 document.getElementById('res2').src = `img/${results[1]}.png`;
                 document.getElementById('res3').src = `img/${results[2]}.png`;
 
-                // Tạo hiệu ứng nhấp nháy vàng các ô trúng giải
                 let counts = {};
                 results.forEach(res => { counts[res] = (counts[res] || 0) + 1; });
 
@@ -404,7 +391,6 @@
                     if (cell) cell.classList.add('win-effect');
                 }
 
-                // Xử lý cộng thưởng tiền vàng (chỉ chạy duy nhất 1 lần để tránh lặp hàm)
                 if (!rewardedThisMatch) {
                     rewardedThisMatch = true;
                     let totalWinGems = 0;
@@ -416,9 +402,9 @@
 
                     if (totalWinGems > 0) {
                         userRef.child('gems').set(currentGems + totalWinGems);
-                        txtStatus.innerText = `💥 BẠN ĐÃ THẮNG +${Math.floor(totalWinGems).toLocaleString()} GEMS!`;
+                        txtStatus.innerText = `THẮNG +${Math.floor(totalWinGems).toLocaleString()} GEMS`;
                     } else {
-                        txtStatus.innerText = "HẾT GIỜ! CHÚC BẠN MAY MẮN VÁN SAU.";
+                        txtStatus.innerText = "KẾT QUẢ";
                     }
                 }
             }
