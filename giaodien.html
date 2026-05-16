@@ -24,8 +24,12 @@
         .nap-gem-note { background: linear-gradient(45deg, #f39c12, #e67e22); color: #000; padding: 14px; border-radius: 12px; font-weight: 900; margin-bottom: 10px; font-size: 13px; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); text-transform: uppercase; text-align: center; display: block; text-decoration: none; transition: 0.3s; box-sizing: border-box; }
         .nap-gem-note:hover { transform: translateY(-2px); filter: brightness(1.1); }
 
-        .switch-game-btn { background: #262626; color: #f1c40f; padding: 12px; border-radius: 12px; font-weight: bold; margin-bottom: 20px; font-size: 13px; border: 1px solid #f1c40f; text-transform: uppercase; text-align: center; display: block; transition: 0.3s; cursor: pointer; text-decoration: none; }
+        .switch-game-btn { background: #262626; color: #f1c40f; padding: 12px; border-radius: 12px; font-weight: bold; margin-bottom: 10px; font-size: 13px; border: 1px solid #f1c40f; text-transform: uppercase; text-align: center; display: block; transition: 0.3s; cursor: pointer; text-decoration: none; }
         .switch-game-btn:hover { background: #f1c40f; color: #000; }
+
+        /* STYLE RIÊNG CHO NÚT BẦU CUA XỊN SÒ */
+        .btn-baucua { background: #2d1f1f; color: #ff5722; border-color: #ff5722; margin-bottom: 20px; }
+        .btn-baucua:hover { background: linear-gradient(135deg, #ff5722, #dd2c00); color: #fff; box-shadow: 0 0 12px rgba(255, 87, 34, 0.5); }
 
         .dice-display { background: #121212; padding: 30px; border-radius: 20px 20px 0 0; font-size: 60px; border: 2px solid #333; border-bottom: none; display: flex; justify-content: center; gap: 10px; }
         .history-container { background: #121212; padding: 10px; border-radius: 0 0 20px 20px; margin-bottom: 20px; display: flex; justify-content: center; gap: 8px; border: 2px solid #333; border-top: 1px solid #444; flex-wrap: wrap; }
@@ -71,7 +75,9 @@
         
         <a href="https://www.roblox.com/users/5741873127/profile" target="_blank" class="nap-gem-note">✨ NẠP/RÚT QUA PROFILE ADMIN ✨</a>
 
-        <div class="switch-game-btn" onclick="window.location.href='daodaquy.html'">🎮 CHUYỂN GAME: ĐÀO ĐÁ QUÝ</div>
+        <a href="daodaquy.html" class="switch-game-btn">🎮 CHUYỂN GAME: ĐÀO ĐÁ QUÝ</a>
+
+        <a href="baucuaca.html" class="switch-game-btn btn-baucua">🎲 CHUYỂN GAME: BẦU CUA ONLINE</a>
 
         <div id="game-taixiu-area">
             <input type="number" id="bet-val" class="bet-input" placeholder="Nhập số Gem cược...">
@@ -152,7 +158,6 @@
         document.getElementById("total-tai-all").innerText = (d?.tai || 0).toLocaleString();
     });
 
-    // Định dạng thời gian HH:mm:ss
     function formatTime(timestamp) {
         const date = new Date(timestamp);
         return date.getHours().toString().padStart(2, '0') + ":" + 
@@ -160,7 +165,6 @@
                date.getSeconds().toString().padStart(2, '0');
     }
 
-    // Cập nhật bảng cược có thời gian
     liveBetsRef.limitToLast(15).on('value', snap => {
         const list = document.getElementById("bet-log-list");
         const data = snap.val();
