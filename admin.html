@@ -1,1 +1,448 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Điều Khiển Kết Quả Bầu Cua - ThinhDZ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: radial-gradient(circle, #13031f 0%, #2a0845 100%);
+            color: #fff;
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            padding: 30px 15px;
+        }
+        .admin-box {
+            max-width: 700px;
+            margin: auto;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #ffd700;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
+        }
+        h2 {
+            color: #ffd700;
+            font-weight: 800;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+        .status-bar {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+            border: 1px solid #333;
+        }
+        .grid-select {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .cheat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 215, 0, 0.15);
+            border-radius: 12px;
+            padding: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: 0.2s;
+            position: relative;
+        }
+        .cheat-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #ffd700;
+        }
+        .cheat-card img {
+            width: 100%;
+            max-width: 75px;
+            object-fit: contain;
+            margin-bottom: 8px;
+        }
+        .cheat-card .name {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        .cheat-card.selected {
+            background: rgba(255, 215, 0, 0.15);
+            border-color: #00ff00;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+            transform: scale(1.03);
+        }
+        .cheat-card.selected .name {
+            color: #00ff00;
+        }
+        .badge-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff3333;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.8rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .preview-area {
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            min-height: 80px;
+            align-items: center;
+            border: 1px dashed #ffd700;
+            margin-bottom: 25px;
+        }
+        .preview-img {
+            width: 50px;
+            height: 50px;
+            background: white;
+            padding: 2px;
+            border-radius: 6px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.5);
+        }
+        .btn-apply {
+            background: linear-gradient(135deg, #00ff00, #00aa00);
+            color: #000;
+            font-weight: 800;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
+            transition: 0.2s;
+        }
+        .btn-apply:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 0, 0.5);
+        }
+        .btn-apply:disabled {
+            background: #444 !important;
+            color: #888 !important;
+            box-shadow: none !important;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-clear {
+            background: #222;
+            color: #ff3333;
+            border: 1px solid #ff3333;
+            font-weight: bold;
+            padding: 6px 15px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            transition: 0.2s;
+        }
+        .btn-clear:hover {
+            background: #ff3333;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
 
+    <div class="admin-box">
+        <h2>🛠️ BẦU CUA ADMIN CONTROL 🛠️</h2>
+        
+        <div class="status-bar" id="adminStatus">
+            ĐANG ĐỒNG BỘ THỜI GIAN VỚI SERVER...
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="fw-bold text-warning">👉 BẤM CHỌN ĐÚNG 3 CON ĐỂ ÉP CẦU VÁN SAU:</span>
+            <button class="btn-clear" onclick="clearSelection()">XÓA CHỌN LẠI</button>
+        </div>
+
+        <div class="grid-select">
+            <div class="cheat-card" data-type="nai" onclick="selectLinhVat('nai')">
+                <img src="img/nai.png">
+                <div class="name">Nai</div>
+                <div class="badge-count" id="badge-nai" style="display: none;">0</div>
+            </div>
+            <div class="cheat-card" data-type="bau" onclick="selectLinhVat('bau')">
+                <img src="img/bau.png">
+                <div class="name">Bầu</div>
+                <div class="badge-count" id="badge-bau" style="display: none;">0</div>
+            </div>
+            <div class="cheat-card" data-type="ga" onclick="selectLinhVat('ga')">
+                <img src="img/ga.png">
+                <div class="name">Gà</div>
+                <div class="badge-count" id="badge-ga" style="display: none;">0</div>
+            </div>
+            <div class="cheat-card" data-type="ca" onclick="selectLinhVat('ca')">
+                <img src="img/ca.png">
+                <div class="name">Cá</div>
+                <div class="badge-count" id="badge-ca" style="display: none;">0</div>
+            </div>
+            <div class="cheat-card" data-type="cua" onclick="selectLinhVat('cua')">
+                <img src="img/cua.png">
+                <div class="name">Cua</div>
+                <div class="badge-count" id="badge-cua" style="display: none;">0</div>
+            </div>
+            <div class="cheat-card" data-type="tom" onclick="selectLinhVat('tom')">
+                <img src="img/tom.png">
+                <div class="name">Tôm</div>
+                <div class="badge-count" id="badge-tom" style="display: none;">0</div>
+            </div>
+        </div>
+
+        <div class="fw-bold text-light mb-2">XEM TRƯỚC BÁT BẤM ÉP CẦU:</div>
+        <div class="preview-area" id="previewContainer">
+            <span class="text-muted" id="previewPlaceholder">Chưa chọn đủ linh vật...</span>
+        </div>
+
+        <button class="btn-apply" id="btnApply" onclick="applyCheat()" disabled>Áp Dụng Kết Quả Ván Tiếp Theo</button>
+        
+        <div class="text-center mt-3 text-muted" style="font-size: 0.85rem;" id="currentCheatState">
+            Trạng thái: Đang đồng bộ...
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPffcP5X0EAK5J85Jcfa9UIT7z2Bc-5Q",
+            authDomain: "taixiupet99.firebaseapp.com",
+            projectId: "taixiupet99",
+            databaseURL: "https://taixiupet99-default-rtdb.firebaseio.com"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        const serverSystemRef = database.ref('baucua_server');
+        const adminCheatRef = database.ref('baucua_room/admin_cheat');
+        const roomBetRef = database.ref('baucua_room/bets'); // Để clear tiền cược ván mới
+        
+        let selectedLinhVats = [];
+        let canCheatThisPeriod = true; 
+
+        // Khai báo các cấu trúc hằng cho vòng lặp Engine chạy tự động
+        const LinhVatList = ['nai', 'bau', 'ga', 'ca', 'cua', 'tom'];
+        let countdownTimer = null;
+        let localSec = 27;
+        let localState = "BETTING"; // Khởi tạo ban đầu là đặt cược
+
+        // 🟢 1. LẮNG NGHE LỆNH ÉP CẦU TỪ FIREBASE
+        adminCheatRef.on('value', snap => {
+            const data = snap.val();
+            const txtState = document.getElementById('currentCheatState');
+            if (data && data.results) {
+                txtState.innerHTML = `🔴 CẦU ĐANG ÉP CHO VÁN SAU: <b class="text-danger">${data.results.join(' - ').toUpperCase()}</b>`;
+            } else {
+                txtState.innerHTML = `🟢 TRẠNG THÁI: Sảnh đang chạy tự động NGẪU NHIÊN 100%`;
+            }
+        });
+
+        // 🔄 2. ĐỒNG BỘ GIAO DIỆN ADMIN THEO DỮ LIỆU THỜI GIAN THỰC
+        serverSystemRef.on('value', snap => {
+            const serverData = snap.val();
+            if (!serverData) return;
+
+            let giay = parseInt(serverData.currentSecond, 10) || 0;
+            let trangThai = serverData.state || "BETTING";
+            const txtStatus = document.getElementById('adminStatus');
+            const btnApply = document.getElementById('btnApply');
+
+            let formatGiay = giay < 10 ? "0" + giay : giay;
+
+            if (trangThai === "SHAKING") {
+                txtStatus.innerHTML = `🎲 <span class="text-warning">ĐANG LẮC XÚC XẮC (${formatGiay} Giây)</span><br><small class="text-muted">Có thể ép cầu ngay để chuẩn bị cho phiên cược tới</small>`;
+                canCheatThisPeriod = true;
+            } 
+            else if (trangThai === "BETTING") {
+                if (giay >= 8) {
+                    txtStatus.innerHTML = `⏳ THỜI GIAN ĐẶT CƯỢC: <span class="text-success">${formatGiay} GIÂY CÒN LẠI</span><br><small class="text-success">ÉP CẦU AN TOÀN VÀ TỐT NHẤT!</small>`;
+                    canCheatThisPeriod = true;
+                } else {
+                    txtStatus.innerHTML = `⚠️ SẮP KHÓA CẦU: <span class="text-danger">${formatGiay} GIÂY</span><br><small class="text-danger">Đang chuẩn bị chốt kết quả, dừng chỉnh cầu!</small>`;
+                    canCheatThisPeriod = false;
+                }
+            } 
+            else if (trangThai === "RESULT") {
+                txtStatus.innerHTML = `🎉 ĐANG MỞ BÁT XEM KẾT QUẢ (${formatGiay} Giây)<br><small class="text-info">Đang hiển thị kết quả và trả tiền thưởng...</small>`;
+                canCheatThisPeriod = false;
+            }
+
+            if (!canCheatThisPeriod) {
+                btnApply.disabled = true;
+            } else {
+                btnApply.disabled = (selectedLinhVats.length !== 3);
+            }
+        });
+
+        // ⚙️ 3. CORE ENGINE: ĐIỀU TỐC THỜI GIAN CHẠY TỰ ĐỘNG LÊN FIREBASE
+        // Hàm này biến file admin thành một máy chủ thời gian thu nhỏ phát tín hiệu liên tục mỗi giây
+        function startTimeServerEngine() {
+            // Đọc dữ liệu hiện tại từ Firebase trước để nối tiếp thời gian nếu có, tránh bị giật time khi F5 trang
+            serverSystemRef.once('value', snap => {
+                const data = snap.val();
+                if (data) {
+                    localSec = parseInt(data.currentSecond, 10) || 27;
+                    localState = data.state || "BETTING";
+                }
+                
+                if(countdownTimer) clearInterval(countdownTimer);
+                
+                countdownTimer = setInterval(() => {
+                    localSec--;
+
+                    // Xử lý chuyển đổi vòng lặp trạng thái (BETTING -> RESULT -> SHAKING)
+                    if (localSec < 1) {
+                        if (localState === "BETTING") {
+                            // Hết giờ cược -> Chuyển sang trả kết quả trong 10 giây
+                            localState = "RESULT";
+                            localSec = 10;
+                            xuLyChotKetQuaPhien(); // Tính toán xúc xắc (Ngẫu nhiên hoặc Ép cầu)
+                        } 
+                        else if (localState === "RESULT") {
+                            // Hết thời gian xem kết quả -> Chuyển sang lắc bát trong 5 giây
+                            localState = "SHAKING";
+                            localSec = 5;
+                            // Tự động xóa tiền phòng cược cũ để chuẩn bị ván mới
+                            roomBetRef.set({ nai: 0, bau: 0, ga: 0, ca: 0, cua: 0, tom: 0 });
+                        } 
+                        else if (localState === "SHAKING") {
+                            // Lắc xong -> Mở lại cổng đặt cược trong 27 giây ván mới
+                            localState = "BETTING";
+                            localSec = 27;
+                        }
+                    }
+
+                    // Đẩy dữ liệu thời gian thực sau khi tính toán lên node trung tâm để các file khác đọc theo
+                    serverSystemRef.update({
+                        currentSecond: localSec,
+                        state: localState
+                    });
+
+                }, 1000);
+            });
+        }
+
+        // Hàm xử lý xuất xúc xắc ngầm khi hết thời gian đặt cược
+        function xuLyChotKetQuaPhien() {
+            adminCheatRef.once('value', snap => {
+                const cheatData = snap.val();
+                let finalDices = [];
+
+                if (cheatData && cheatData.results && cheatData.results.length === 3) {
+                    // Nếu Admin có cài đặt ép cầu -> Xuất chuẩn xác 3 con này
+                    finalDices = cheatData.results;
+                    // Xóa lệnh cheat sau khi đã áp dụng thành công để ván sau trở lại tự động
+                    adminCheatRef.remove();
+                } else {
+                    // Nếu không ép cầu -> Quay ngẫu nhiên 100% 3 con linh vật ngẫu nhiên
+                    for (let i = 0; i < 3; i++) {
+                        let randIndex = Math.floor(Math.random() * LinhVatList.length);
+                        finalDices.push(LinhVatList[randIndex]);
+                    }
+                }
+
+                // Cập nhật mảng xúc xắc kết quả lên server
+                serverSystemRef.update({
+                    dices: finalDices
+                });
+            });
+        }
+
+        // Kích hoạt máy chủ thời gian tự động ngay khi mở trang web Admin lên
+        startTimeServerEngine();
+
+
+        // ⚙️ 4. XỬ LÝ CHỌN CÁC Ô LINH VẬT TRÊN MÀN HÌNH
+        function updateSelectionUI() {
+            document.querySelectorAll('.cheat-card').forEach(card => {
+                card.classList.remove('selected');
+                const badge = card.querySelector('.badge-count');
+                badge.style.display = 'none';
+                badge.innerText = '0';
+            });
+
+            let counts = {};
+            selectedLinhVats.forEach(type => {
+                counts[type] = (counts[type] || 0) + 1;
+            });
+
+            for (let type in counts) {
+                const card = document.querySelector(`[data-type="${type}"]`);
+                if (card) {
+                    card.classList.add('selected');
+                    const badge = card.querySelector('.badge-count');
+                    badge.style.display = 'flex';
+                    badge.innerText = counts[type];
+                }
+            }
+
+            const previewBox = document.getElementById('previewContainer');
+            const btnApply = document.getElementById('btnApply');
+            
+            if (selectedLinhVats.length === 0) {
+                previewBox.innerHTML = `<span class="text-muted">Chưa chọn linh vật...</span>`;
+                btnApply.disabled = true;
+            } else {
+                previewBox.innerHTML = '';
+                selectedLinhVats.forEach(type => {
+                    const img = document.createElement('img');
+                    img.src = `img/${type}.png`;
+                    img.className = 'preview-img';
+                    previewBox.appendChild(img);
+                });
+
+                btnApply.disabled = (selectedLinhVats.length !== 3 || !canCheatThisPeriod);
+            }
+        }
+
+        window.selectLinhVat = function(type) {
+            if (!canCheatThisPeriod) {
+                alert("Hệ thống đang mở bát hoặc sắp chốt kết quả, không can thiệp lúc này!");
+                return;
+            }
+            if (selectedLinhVats.length >= 3) {
+                alert("Đã chọn đủ 3 linh vật ván sau! Hãy bấm nút XÓA nếu muốn chọn lại.");
+                return;
+            }
+            selectedLinhVats.push(type);
+            updateSelectionUI();
+        }
+
+        window.clearSelection = function() {
+            selectedLinhVats = [];
+            updateSelectionUI();
+        }
+
+        // 💥 5. ĐẨY LỆNH ÉP CẦU LÊN FIREBASE CHUẨN XÁC
+        window.applyCheat = function() {
+            if (selectedLinhVats.length !== 3 || !canCheatThisPeriod) return;
+            
+            adminCheatRef.set({
+                results: selectedLinhVats,
+                timestamp: Date.now()
+            }).then(() => {
+                alert("Ép cầu thành công! Đúng ván kết quả tiếp theo hệ thống sẽ nổ ra 3 con này.");
+                clearSelection();
+            }).catch(err => {
+                alert("Lỗi kết nối Firebase: " + err.message);
+            });
+        }
+    </script>
+</body>
+</html>
