@@ -1,1 +1,122 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hệ thống điều hành Tài Xỉu - Pet99</title>
+    <style>
+        body { font-family: sans-serif; background: #000; color: #0f0; text-align: center; padding-top: 50px; }
+        .status-box { border: 2px solid #0f0; display: inline-block; padding: 20px; border-radius: 10px; min-width: 300px; }
+        #clock { font-size: 48px; margin: 10px 0; color: #fff; }
+        #dice-info { font-size: 20px; margin-top: 10px; color: #ff0; }
+        .info { color: #888; font-size: 14px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="status-box">
+        <h2>MÁY CHỦ ĐANG CHẠY (V3 - ADMIN CONTROL)</h2>
+        <h1 id="clock">Khởi động...</h1>
+        <div id="dice-info">Kết quả phiên trước: --</div>
+        <p class="info">Vui lòng không đóng tab này để hệ thống luôn chạy.</p>
+    </div>
 
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPffcP5X0EAK5J85Jcfa9UIT7z2Bc-5Q",
+            authDomain: "taixiupet99.firebaseapp.com",
+            projectId: "taixiupet99",
+            databaseURL: "https://taixiupet99-default-rtdb.firebaseio.com" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const sessionRef = database.ref('gameSession');
+        const totalBetRef = database.ref('gameSession/totalBets');
+        const historyRef = database.ref('gameHistory');
+        const locksRef = database.ref('gameSession/userBetLocks');
+
+        let timeLeft = 60; 
+        
+        setInterval(() => {
+            timeLeft--;
+            
+            if (timeLeft === 0) {
+                // === BƯỚC 1: QUYẾT ĐỊNH KẾT QUẢ ===
+                sessionRef.child('nextResult').once('value', (snap) => {
+                    let dice;
+                    const manual = snap.val();
+
+                    // Nếu Admin có cài đặt sẵn kết quả (Dạng mảng: [d1, d2, d3])
+                    if (manual && Array.isArray(manual)) {
+                        dice = manual; 
+                        console.log("Đã áp dụng kết quả từ Admin:", dice);
+                    } else {
+                        // Nếu không có can thiệp, tự động Random
+                        dice = [
+                            Math.floor(Math.random() * 6) + 1,
+                            Math.floor(Math.random() * 6) + 1,
+                            Math.floor(Math.random() * 6) + 1
+                        ];
+                    }
+                    
+                    const total = dice[0] + dice[1] + dice[2];
+                    const resType = (total >= 11) ? "Tài" : "Xỉu";
+                    
+                    // === BƯỚC 2: CẬP NHẬT LÊN FIREBASE ===
+                    sessionRef.update({ 
+                        timeLeft: 0, 
+                        dice: dice, 
+                        status: "result" 
+                    });
+                    
+                    // === BƯỚC 3: LƯU LỊCH SỬ PHIÊN ===
+                    historyRef.push({
+                        d: dice,
+                        r: resType,
+                        t: Date.now()
+                    });
+
+                    // Xóa lệnh can thiệp sau khi đã dùng xong
+                    sessionRef.child('nextResult').remove();
+                    document.getElementById("dice-info").innerText = `🎲 Kết quả: ${dice.join(" - ")} (${resType})`;
+                });
+
+                // Chờ 5 giây để Client xử lý cộng tiền thắng trước khi Reset
+                timeLeft = -5; 
+
+            } else if (timeLeft === -6) {
+                // === RESET PHIÊN MỚI ===
+                timeLeft = 60;
+                
+                // Reset dữ liệu cược trên Firebase
+                totalBetRef.set({ xiu: 0, tai: 0 });
+                locksRef.remove(); 
+                
+                sessionRef.update({ 
+                    timeLeft: 60, 
+                    status: "betting",
+                    dice: [0, 0, 0] 
+                });
+            } else if (timeLeft > 0) {
+                // Đếm ngược thời gian đặt cược
+                sessionRef.update({ 
+                    timeLeft: timeLeft, 
+                    status: "betting" 
+                });
+            }
+
+            // Giao diện hiển thị cho Admin dễ nhìn
+            let displayTime;
+            if (timeLeft <= 0) {
+                displayTime = "ĐANG TRẢ THƯỞNG...";
+                document.getElementById("clock").style.color = "#ff4757";
+            } else {
+                displayTime = timeLeft + "s";
+                document.getElementById("clock").style.color = "#fff";
+            }
+            document.getElementById("clock").innerText = displayTime;
+            
+        }, 1000);
+    </script>
+</body>
+</html>
